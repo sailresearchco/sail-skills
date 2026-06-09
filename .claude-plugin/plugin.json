@@ -1,0 +1,19 @@
+{
+  "name": "sail",
+  "displayName": "Sail",
+  "description": "Build, instrument, and debug Sail Voyage observability flows with series history, Sail inference attribution, and Sailbox execution evidence. Public v1 ships Voyage skills; broader Sail skills belong in this namespace over time.",
+  "version": "0.1.0",
+  "author": {
+    "name": "Sail Research"
+  },
+  "homepage": "https://sailresearch.com",
+  "license": "Apache-2.0",
+  "keywords": [
+    "sail",
+    "voyages",
+    "agent-skills",
+    "claude-code",
+    "sailbox",
+    "inference"
+  ]
+}

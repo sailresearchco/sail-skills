@@ -1,0 +1,15 @@
+{
+  "name": "sail",
+  "description": "Official Sail skills: build observable background agents with Voyage tracing, Sail inference attribution, and Sailbox execution evidence.",
+  "owner": {
+    "name": "Sail Research",
+    "url": "https://sailresearch.com"
+  },
+  "plugins": [
+    {
+      "name": "sail",
+      "source": "./",
+      "description": "Build, instrument, and debug observable background agents on Sail: Voyage tracing, Sail inference attribution, and Sailbox execution evidence."
+    }
+  ]
+}

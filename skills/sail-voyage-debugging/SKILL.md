@@ -1,0 +1,213 @@
+---
+name: sail-voyage-debugging
+description: 'Use when a Voyage already ran but renders wrong in the dashboard: missing from the series list, no events, agents not appearing, model calls (LLM spans) stuck in_progress, no Sailbox exec evidence, or "Unscoped" / "Missing span" counts. A symptom→cause→fix diagnostic playbook grounded in real rollout failure modes. Use this to fix an existing trace, not to author one (see sail-voyage).'
+---
+
+# Sail Voyage Debugging
+
+Use this when a Voyage you expected to see in the dashboard either doesn't
+appear, appears incomplete, or shows misleading state. Below: the
+high-frequency failure modes, what they look like, how to diagnose, and
+how to fix.
+
+## Diagnostic flow
+
+```
+Voyage missing from dashboard list ──► section 1
+   │
+   ├─ Voyage shows but Overview says "no events" ──► section 2
+   │
+   ├─ Events present but agents missing ──► section 3
+   │
+   ├─ Model calls stuck "in_progress" / striped ──► section 4
+   │
+   ├─ No Sailbox exec evidence when you expected execs ──► section 5
+   │
+   ├─ "Unscoped" model calls > 0 ──► section 6
+   │
+   └─ Voyage never reaches terminal status ──► section 7
+```
+
+## 1. Voyage missing from dashboard list
+
+**Symptoms:** You called `sail.voyage.init(...)` but the Voyage doesn't
+appear at the env-qualified dashboard URL, for example
+`app.sailresearch.com/prod/voyages/<voyage_id>`.
+
+**Most likely causes:**
+
+- **Wrong env.** `SAIL_MODE` defaults to `prod` in the SDK. If your key is a
+  dev or staging key, set `SAIL_MODE=dev` or `SAIL_MODE=staging` explicitly.
+  Check the script's env or `os.environ.get("SAIL_MODE")` at runtime.
+- **Wrong org.** The dashboard scopes to your active Clerk org. If the
+  API key belongs to a different org, the Voyage is invisible to your
+  current login.
+- **Wrong series name.** `/voyages` groups by exact `name`. If you changed
+  capitalization or embedded the input/date in `name`, the run may be under a
+  different series than expected.
+- **Missing API key.** If `SAIL_API_KEY` is unset, the SDK creates a no-op
+  Voyage and emits a debug warning when `SAIL_VOYAGE_DEBUG=1`.
+- **Invalid API key.** A 401 from `voyage.init()` raises `VoyageHTTPError`;
+  the Voyage was never created. Look for the exception in stderr.
+
+**Diagnose:**
+
+```python
+import sail
+voyage = sail.voyage.init(name="diag")
+print("voyage_id =", sail.voyage.id())          # None if init failed
+print("dashboard_url =", sail.voyage.dashboard_url())
+```
+
+If `voyage_id` is None at the top of your script, init failed silently.
+Check `SAIL_MODE`, `SAIL_API_KEY`, and try a single `/v1/models` curl
+against the API endpoint to confirm the key works there.
+
+## 2. Voyage exists but Overview says "no events"
+
+**Symptoms:** Voyage row exists; Overview shows agents/events as 0.
+
+**Most likely causes:**
+
+- **Process exited before flush.** Voyage events are buffered. Calling
+  `sys.exit(0)` or letting the process die mid-flight can drop events.
+  Always call `voyage.complete()` (or `voyage.fail()`) before exit.
+- **Voyage was created in a different process than the one emitting
+  events.** Subprocess didn't read `SAIL_VOYAGE_ID`; it created its own
+  Voyage and emitted events there.
+
+**Diagnose:**
+
+```python
+voyage.flush()   # force buffered events to write before assertion
+```
+
+If events appear after explicit flush but not before, your process was
+exiting too early.
+
+## 3. Events present but agents missing
+
+**Symptoms:** Events fire but the Overview's "Agents" panel is empty or
+wrong.
+
+**Most likely cause:** events were emitted outside any
+`with voyage.agent(...)` block. The dashboard derives the agent list
+from `voyage_events.agent_name`, which is populated from the active
+agent contextvar at event time.
+
+**Fix:** wrap event/span emission in `with voyage.agent(slug, name=..., role=...)`.
+See [sail-voyage multi-agent reference](../sail-voyage/references/multi-agent.md).
+
+## 4. Model calls stuck "in_progress" / striped in waterfall
+
+**Symptoms:** The Voyage waterfall shows model-call rows as striped /
+"partial" / `in_progress` even after the Voyage completed.
+
+**Known issue:** the dashboard reconciles terminal state on the read path, but a
+model call's producer-side close event (from the Responses streaming path) can be
+intermittently late or missing — for synchronous and background calls alike — so
+the row can look stuck.
+
+**Workaround:**
+
+- Prefer `background=False` on `sail.inference.responses.create()`; the
+  synchronous path tends to be more reliable about terminal-state events, though
+  it is not immune.
+- Wait ~30-60s before checking the dashboard; the reconciled terminal state
+  eventually appears.
+
+## 5. No Sailbox exec evidence when you expected execs
+
+**Symptoms:** You ran `Sailbox.exec()` inside a Voyage but Execution Trace,
+Waterfall, or native exec evidence views do not show the command.
+
+**Most likely causes:**
+
+- **Sailbox isn't bound to the Voyage.** Either pass `sailbox_id=` to
+  `voyage.init()` at start, or run the exec inside a Voyage agent/span
+  context. Sail associates the exec row through request metadata from the
+  active context.
+- **No active span when the exec dispatched.** Without an active span,
+  `span_id` is null and the exec may not appear in some
+  span-filtered views. Always exec inside a `with voyage.span(...)`
+  block.
+
+**Diagnose with SQL** (requires direct DB access — Sail operators only;
+customers should check the dashboard's exec evidence views instead):
+
+```sql
+SELECT exec_request_id, voyage_id, span_id, agent_id
+  FROM sailbox_execs
+ WHERE sailbox_id = '<your sailbox id>'
+ ORDER BY created_at DESC;
+```
+
+If `voyage_id` is NULL: the exec ran outside any Voyage context.
+
+## 6. "Unscoped" model calls > 0
+
+**Symptoms:** Overview's Native Model Calls panel shows `Unscoped: N` or
+`Missing span: N` with N > 0.
+
+**Most likely cause:** the inference call was made through a raw OpenAI
+client instead of `sail.inference.responses.create()`. Raw clients don't
+attach the voyage/span/agent headers.
+
+**Fix:** use `sail.inference.*` when you need span-scoped attribution. As
+a fallback, a raw client can attach Voyage-level headers explicitly:
+
+```python
+from openai import OpenAI
+import sail
+
+cfg = sail.Config.from_env()
+client = OpenAI(api_key=cfg.api_key, base_url=f"{cfg.api_url.rstrip('/')}/v1")
+response = client.responses.create(
+    model="zai-org/GLM-5",
+    input="...",
+    extra_headers=sail.voyage.headers(),
+)
+```
+
+`sail.voyage.headers()` returns the public-safe subset
+(`X-Sail-Voyage-Id` only). That fixes "not attached to any Voyage" but
+does not fix `Unscoped` / `Missing span`, because those states are driven
+by missing span context. Span/agent attribution requires routing through
+`sail.inference`, which applies the private span/agent headers.
+
+## 7. Voyage never reaches terminal status
+
+**Symptoms:** Voyage Overview keeps saying "in progress" indefinitely.
+
+**Most likely causes:**
+
+- Process exited without calling `voyage.complete()` or `voyage.fail()`.
+- An exception was raised inside a `with voyage.span(...)` block and
+  bypassed the terminal call. Wrap the whole script body in
+  `try/except` and call `voyage.fail(error_type=..., message=...)` on
+  exception.
+
+**Pattern:**
+
+```python
+voyage = sail.voyage.init(name="task")
+try:
+    do_work()
+    voyage.complete(message="ok")
+except Exception as exc:
+    voyage.fail(error_type=exc.__class__.__name__, message=str(exc))
+    raise
+```
+
+## When all else fails
+
+- Re-run with the SDK debug env: `SAIL_VOYAGE_DEBUG=1`. The SDK logs
+  every emit to stderr.
+- Compare against a known-good run: run a minimal Voyage you trust (see the
+  example in [sail-voyage](../sail-voyage/SKILL.md)) and confirm it renders
+  correctly before assuming the dashboard is broken.
+
+## Reference
+
+- Entrypoint skill: [sail-voyage](../sail-voyage/SKILL.md)
+- Dashboard: <https://app.sailresearch.com/voyages>
