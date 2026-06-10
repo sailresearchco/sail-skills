@@ -1,0 +1,20 @@
+{
+  "name": "sail",
+  "interface": {
+    "displayName": "Sail"
+  },
+  "plugins": [
+    {
+      "name": "sail",
+      "source": {
+        "source": "local",
+        "path": "./plugins/sail"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Developer Tools"
+    }
+  ]
+}
