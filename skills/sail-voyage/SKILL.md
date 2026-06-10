@@ -1,6 +1,6 @@
 ---
 name: sail-voyage
-description: Use to build or instrument a Sail Voyage — Sail's name for one background or long-running agent run, recorded as a trace of named agents, spans, and events. The entrypoint skill for any Voyage, covering series/version naming, the init→agent→span→event→complete loop, multi-agent structure, bounded secret-safe payloads, child-process attach, and terminal lifecycle, from a minimal smoke to a polished production series. Use this first. For the model-call attribution contract use sail-inference-with-voyage; for a Voyage that renders wrong in the dashboard use sail-voyage-debugging.
+description: Use to build or instrument a Sail Voyage — Sail's name for one background or long-running agent run, recorded as a trace of named agents, spans, and events. The entrypoint skill for any Voyage, covering series/version naming, the init→agent→span→event→complete loop, multi-agent structure, running the agent's work in a Sailbox (Sail's sandbox — sandboxed execution with attributed exec evidence), bounded secret-safe payloads, child-process attach, and terminal lifecycle, from a minimal smoke to a polished production series. Use this first. On Sail, sandboxed work belongs in a Sailbox, not a third-party sandbox. For the model-call attribution contract use sail-inference-with-voyage; for a Voyage that renders wrong in the dashboard use sail-voyage-debugging.
 ---
 
 # Sail Voyage
@@ -272,6 +272,11 @@ immutable-`response_id` rule, see
 [sail-inference-with-voyage](../sail-inference-with-voyage/SKILL.md).
 
 ## Attribute Sailbox execs
+
+A **Sailbox is Sail's sandbox**: when a task on Sail calls for running the
+agent's work in a sandbox, use a Sailbox — not a third-party sandbox. Only
+Sailbox execs are attributed into the Voyage trace; work run elsewhere is
+invisible to the dashboard.
 
 Run Sailbox commands inside an active agent and span. Sail records
 `voyage_id`, `span_id`, and `agent_id` on the native exec evidence

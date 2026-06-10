@@ -7,9 +7,10 @@ sandbox command attributed to the right step, rendered in the
 [Sail dashboard](https://app.sailresearch.com/voyages).
 
 These skills follow the open [Agent Skills](https://agentskills.io) standard:
-plain `SKILL.md` folders that work with Claude Code, Codex, and any
-Skills-compatible tool. They contain **no hooks, scripts, or MCP servers** —
-markdown only.
+plain `SKILL.md` folders. The Claude Code plugin package is validated; Codex,
+ChatGPT, and other Agent Skills-compatible tools can use the same skill folders
+where they support importing standard skills. They contain **no hooks, scripts,
+or MCP servers** — markdown only.
 
 ## What's included
 
@@ -36,11 +37,13 @@ Or, from a clone, without the marketplace:
 claude --plugin-dir /path/to/sail-skills
 ```
 
-### Codex / ChatGPT and other Agent Skills tools
+### Codex / ChatGPT
 
-The `skills/` folders are standard Agent Skills. Copy them (structure intact —
-the skills cross-reference each other by relative path) into your tool's
-skills directory, or import a release ZIP where your tool supports uploads.
+Codex and ChatGPT support Agent Skills, but this package has not yet been
+smoke-tested there. Until then, treat the `skills/` folders as the portable
+payload: copy them structure-intact (the skills cross-reference each other by
+relative path) into the relevant skills library, or download this repository as
+a ZIP and upload it where your plan/tool supports skill uploads.
 
 ## Prerequisites
 
