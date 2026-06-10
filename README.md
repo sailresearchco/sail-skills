@@ -64,6 +64,11 @@ Ask your agent:
 
 The `sail-voyage` skill takes it from there.
 
+## Contributing
+
+This repo is a curated export of an internal source-of-truth tree — see
+[CONTRIBUTING.md](./CONTRIBUTING.md) for how proposals and fixes flow.
+
 ## License
 
 [Apache-2.0](./LICENSE)
