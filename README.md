@@ -59,7 +59,7 @@ relative path) or download this repository as a ZIP.
    <https://app.sailresearch.com/api-keys>.
 2. `export SAIL_API_KEY=sk_...` in the environment your agent runs in (the SDK
    reads the environment directly).
-3. The Python SDK: `pip install sail-sdk`.
+3. The Python SDK: `pip install "sail-sdk>=0.1.39"` — the name-first `voyage.agent("Name")` API needs 0.1.39+.
 
 ## Quick start
 

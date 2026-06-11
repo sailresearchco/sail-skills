@@ -26,22 +26,25 @@ Voyage (one per task)
 ```
 
 Agents are SDK-level contexts, not separate processes. They are created by
-entering `with sail.voyage.agent(slug, name=..., role=...)`. Multiple agents can
+entering `with voyage.agent("Agent Name", role=...)`. Multiple agents can
 be active in one Voyage; nested agents push a stack.
 
-## slug vs name vs role
+## name, role, and slug
 
-- **`slug`** (first positional): the SDK-internal context key. Stable identifier
-  for the agent context within the SDK; not user-facing.
-- **`name`**: the human-readable instance label shown in the dashboard
-  ("Reviewer", "ReviewerV2", "Critic-shadow"). Cockpit groups runs by name in
-  the "Other runs of X" panel.
-- **`role`**: the cohort taxonomy ("reviewer", "test_runner", "source_control",
-  "executor"). The dashboard offers role as a categorical filter.
+- **name** (the only required argument): the human-readable identity shown in
+  the dashboard ("Reviewer", "ReviewerV2", "Critic-shadow"). The cockpit groups
+  runs by name in the "Other runs of X" panel. The stable attribution key is
+  derived from it automatically (lowercased, ASCII, hyphenated — "Source
+  Researcher" → `source-researcher`).
+- **`role=`** (optional): the cohort taxonomy ("reviewer", "test_runner",
+  "source_control", "executor"). The dashboard offers role as a categorical
+  filter across workflows. Freeform — pick a vocabulary and keep it stable.
+- **`slug=`** (optional, advanced): pins the attribution key explicitly. Use it
+  when you rename an agent's display name but want its history to stay one
+  identity, or when a child process must attach as the same agent.
 
-Both `name` and `role` are first-class; they answer different questions ("which
-instance ran?" vs "what kind of work was done?"). Keep both stable across runs of
-a series.
+Renaming the display name otherwise creates a new agent identity. Keep names
+and roles stable across runs of a series.
 
 ## Copy-paste-ready example
 
@@ -60,10 +63,9 @@ sb = sail.Sailbox.create(
     name="multi-agent-review-demo",
 )
 
-# Agent 1: clone the repo (attributed to GitHub agent). Public repo here;
-# private-repo credential injection requires Sail-provisioned org setup and
-# is not part of the public v1 package. Never inline tokens in exec strings.
-with voyage.agent("github", name="GitHub", role="source_control"):
+# Agent 1: clone the repo (attributed to GitHub agent). Public repo here —
+# never inline tokens in exec strings.
+with voyage.agent("GitHub", role="source_control"):
     with voyage.span("clone"):
         clone_req = sb.exec(
             "git clone --depth 1 https://github.com/octocat/Hello-World.git /tmp/repo",
@@ -72,7 +74,7 @@ with voyage.agent("github", name="GitHub", role="source_control"):
         clone_req.wait()
 
 # Agent 2: run checks (attributed to TestRunner agent).
-with voyage.agent("test-runner", name="TestRunner", role="executor"):
+with voyage.agent("TestRunner", role="executor"):
     with voyage.span("run checks"):
         # Stand-in check that succeeds in any cloned repo; swap in your repo's
         # real test command (pytest, npm test, ...).
@@ -80,7 +82,7 @@ with voyage.agent("test-runner", name="TestRunner", role="executor"):
         test_req.wait()
 
 # Agent 3: review (attributed to Reviewer agent, with a Sail inference call).
-with voyage.agent("reviewer", name="Reviewer", role="reviewer"):
+with voyage.agent("Reviewer", role="reviewer"):
     with voyage.span("draft-comments"):
         response = sail.inference.responses.create(
             model="zai-org/GLM-5",

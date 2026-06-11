@@ -95,7 +95,7 @@ wrong.
 from `voyage_events.agent_name`, which is populated from the active
 agent contextvar at event time.
 
-**Fix:** wrap event/span emission in `with voyage.agent(slug, name=..., role=...)`.
+**Fix:** wrap event/span emission in `with voyage.agent("Agent Name", role=...)`.
 See [sail-voyage multi-agent reference](../sail-voyage/references/multi-agent.md).
 
 ## 4. Model calls stuck "in_progress" / striped in waterfall

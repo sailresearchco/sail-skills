@@ -64,7 +64,7 @@ def main() -> None:
         )
 
         # Worker agent: do the work in the Sailbox → attributed exec row.
-        with voyage.agent("worker", name="Worker", role="executor"):
+        with voyage.agent("Worker", role="executor"):
             with voyage.span("count words"):
                 result = sb.exec(word_counts, text, timeout=60)
                 voyage.event(
@@ -83,7 +83,7 @@ def main() -> None:
                 )
 
         # Analyst agent: one scoped Sail inference call → model-call row.
-        with voyage.agent("analyst", name="Analyst", role="analyst"):
+        with voyage.agent("Analyst", role="analyst"):
             with voyage.span("summarize"):
                 response = sail.inference.responses.create(
                     model="zai-org/GLM-5",
