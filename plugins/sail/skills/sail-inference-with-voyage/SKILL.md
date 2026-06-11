@@ -46,7 +46,7 @@ import sail
 
 voyage = sail.voyage.init(name="agent-with-inference")
 
-with voyage.agent("reviewer", name="Reviewer", role="reviewer"):
+with voyage.agent("Reviewer", role="reviewer"):
     with voyage.span("draft-response"):
         # Headers attached automatically because we're inside a voyage.
         response = sail.inference.responses.create(
@@ -105,7 +105,7 @@ client = OpenAI(
     base_url=f"{cfg.api_url.rstrip('/')}/v1",
 )
 
-with voyage.agent("reviewer", name="Reviewer", role="reviewer"):
+with voyage.agent("Reviewer", role="reviewer"):
     with voyage.span("call"):
         response = client.responses.create(
             model="zai-org/GLM-5",

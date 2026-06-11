@@ -22,7 +22,7 @@ For two adjacent concerns, reach for a focused sibling skill:
 - a Voyage that looks wrong in the dashboard →
   [sail-voyage-debugging](../sail-voyage-debugging/SKILL.md)
 
-For the full multi-agent attribution model (slug vs name vs role, per-agent
+For the full multi-agent attribution model (name, role, and slug semantics, per-agent
 pitfalls, SQL verification), see
 [references/multi-agent.md](references/multi-agent.md). For a complete runnable
 skeleton, see [references/minimal-example.md](references/minimal-example.md).
@@ -63,7 +63,7 @@ voyage = sail.voyage.init(
     metadata={"repo": "example-org/example-repo", "task": "eval"},
 )
 try:
-    with voyage.agent("executor", name="Executor", role="executor"):
+    with voyage.agent("Executor", role="executor"):
         with voyage.span("run task"):
             voyage.event("task.started", payload={"step": 1})
             # ... do work ...
@@ -104,11 +104,11 @@ voyage = sail.voyage.init(
     },
 )
 
-with voyage.agent("planner", name="Planner", role="planner"):
+with voyage.agent("Planner", role="planner"):
     with voyage.span("scope research question"):
         voyage.event("research.scope.selected", payload={"question_count": 4})
 
-with voyage.agent("researcher", name="Researcher", role="researcher"):
+with voyage.agent("Researcher", role="researcher"):
     with voyage.span("collect sources"):
         response = sail.inference.responses.create(
             model="zai-org/GLM-5",
@@ -118,7 +118,7 @@ with voyage.agent("researcher", name="Researcher", role="researcher"):
         )
         voyage.event("research.sources.collected", payload={"response_id": response["id"]})
 
-with voyage.agent("publisher", name="Publisher", role="publisher"):
+with voyage.agent("Publisher", role="publisher"):
     with voyage.span("write final artifact"):
         voyage.event(
             "artifact.report.ready",
@@ -181,8 +181,12 @@ which iteration produced the run.
 
 ## Design agents for dashboard readability
 
-Agents are customer-facing ownership labels. Use a small, stable set that
-matches real responsibility boundaries.
+Agents are customer-facing ownership labels. Declare one with just its display
+name — `with voyage.agent("Researcher"):` — and the stable attribution key is
+derived automatically. `role=` is optional taxonomy for cross-workflow
+filtering; `slug=` (advanced) pins the attribution key if you later rename the
+display name. Use a small, stable set that matches real responsibility
+boundaries.
 
 | Agent name | Role             | Owns                                                        |
 | ---------- | ---------------- | ----------------------------------------------------------- |
@@ -210,7 +214,7 @@ Rules:
 When one Voyage involves multiple cooperating agents (e.g. a Reviewer that reads
 code and a TestRunner that runs tests in a shared Sailbox), each agent gets its
 own spans, events, model calls, and exec rows but they all belong to one Voyage.
-For the `slug` / `name` / `role` distinction, the full multi-agent example,
+For the name / `role=` / `slug=` semantics, the full multi-agent example,
 common mis-attribution pitfalls, and the verification SQL, see
 [references/multi-agent.md](references/multi-agent.md).
 
@@ -255,7 +259,7 @@ Calls through `sail.inference.*` inherit the active Voyage, agent, and span, so
 the dashboard shows scoped model rows under the right owner.
 
 ```python
-with voyage.agent("analyst", name="Analyst", role="analyst"):
+with voyage.agent("Analyst", role="analyst"):
     with voyage.span("compare evidence"):
         response = sail.inference.responses.create(
             model="zai-org/GLM-5",
@@ -289,7 +293,7 @@ def redact_tail(text, limit=2000):
     return text[-limit:]
 
 
-with voyage.agent("executor", name="Executor", role="executor"):
+with voyage.agent("Executor", role="executor"):
     with voyage.span("run validation command"):
         req = sb.exec("cd /tmp/work && pytest -q", timeout=600)
         result = req.wait()
@@ -309,10 +313,6 @@ with voyage.agent("executor", name="Executor", role="executor"):
 Rules: always set a non-zero `timeout`; record `exec_request_id` so manual
 events dedupe against native rows; keep stdout/stderr tails bounded and
 redacted; never put API keys, GitHub tokens, or bearer tokens in shell strings.
-Never work around a private repo by embedding a token in a shell string, image
-env, or guest file. Sail supports scoped per-exec credential injection for
-private repos, but it requires Sail-provisioned org setup and is not part of
-the public v1 package — contact Sail if you need it.
 
 Do not rely on Sailbox APIs to auto-create Voyages, and do not pass the API key
 into Sailbox commands to make guest code attach by default.
