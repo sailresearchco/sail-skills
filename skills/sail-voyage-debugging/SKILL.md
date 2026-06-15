@@ -30,7 +30,7 @@ Voyage missing from dashboard list ──► section 1
 
 ## 1. Voyage missing from dashboard list
 
-**Symptoms:** You called `sail.voyage.init(...)` but the Voyage doesn't
+**Symptoms:** You called `sail.voyage.create(...)` but the Voyage doesn't
 appear at the env-qualified dashboard URL, for example
 `app.sailresearch.com/prod/voyages/<voyage_id>`.
 
@@ -46,20 +46,22 @@ appear at the env-qualified dashboard URL, for example
   capitalization or embedded the input/date in `name`, the run may be under a
   different series than expected.
 - **Missing API key.** If `SAIL_API_KEY` is unset, the SDK creates a no-op
-  Voyage and emits a debug warning when `SAIL_VOYAGE_DEBUG=1`.
-- **Invalid API key.** A 401 from `voyage.init()` raises `VoyageHTTPError`;
+  Voyage and emits one `RuntimeWarning` per process saying telemetry is
+  disabled. Look for it in stderr.
+- **Invalid API key.** A 401 from `voyage.create()` raises `VoyageHTTPError`;
   the Voyage was never created. Look for the exception in stderr.
 
 **Diagnose:**
 
 ```python
 import sail
-voyage = sail.voyage.init(name="diag")
-print("voyage_id =", sail.voyage.id())          # None if init failed
+voyage = sail.voyage.create(name="diag")
+print("voyage_id =", sail.voyage.id())          # None if telemetry is disabled
 print("dashboard_url =", sail.voyage.dashboard_url())
 ```
 
-If `voyage_id` is None at the top of your script, init failed silently.
+If `voyage_id` is None at the top of your script, the SDK degraded to a
+no-op Voyage (and warned why on stderr).
 Check `SAIL_MODE`, `SAIL_API_KEY`, and try a single `/v1/models` curl
 against the API endpoint to confirm the key works there.
 
@@ -124,7 +126,7 @@ Waterfall, or native exec evidence views do not show the command.
 **Most likely causes:**
 
 - **Sailbox isn't bound to the Voyage.** Either pass `sailbox_id=` to
-  `voyage.init()` at start, or run the exec inside a Voyage agent/span
+  `voyage.create()` at start, or run the exec inside a Voyage agent/span
   context. Sail associates the exec row through request metadata from the
   active context.
 - **No active span when the exec dispatched.** Without an active span,
@@ -149,31 +151,35 @@ If `voyage_id` is NULL: the exec ran outside any Voyage context.
 **Symptoms:** Overview's Native Model Calls panel shows `Unscoped: N` or
 `Missing span: N` with N > 0.
 
-**Most likely cause:** the inference call was made through a raw OpenAI
-client instead of `sail.inference.responses.create()`. Raw clients don't
-attach the voyage/span/agent headers.
+**Most likely causes:**
 
-**Fix:** use `sail.inference.*` when you need span-scoped attribution. As
-a fallback, a raw client can attach Voyage-level headers explicitly:
+- **The call ran outside any `agent()` / `span()` context.** Headers carry
+  whatever context is active at call time; with none active, only the
+  voyage id is attached. Wrap the call:
+  `with voyage.agent("Analyst"): with voyage.span("score"): ...`
+- **A raw client snapshotted headers at construction.**
+  `OpenAI(default_headers=sail.voyage.headers())` freezes the context that
+  was active when the client was built — usually none, or worse, the wrong
+  span. Wrap the client instead; headers are then computed per call and
+  un-spanned calls get synthesized auto-spans, same as `sail.inference.*`:
 
 ```python
 from openai import OpenAI
 import sail
 
 cfg = sail.Config.from_env()
-client = OpenAI(api_key=cfg.api_key, base_url=f"{cfg.api_url.rstrip('/')}/v1")
-response = client.responses.create(
-    model="zai-org/GLM-5",
-    input="...",
-    extra_headers=sail.voyage.headers(),
+client = sail.voyage.wrap_openai(
+    OpenAI(api_key=cfg.api_key, base_url=f"{cfg.api_url.rstrip('/')}/v1")
 )
+
+with voyage.agent("Analyst"):
+    with voyage.span("score"):
+        response = client.responses.create(model="zai-org/GLM-5", input="...")
 ```
 
-`sail.voyage.headers()` returns the public-safe subset
-(`X-Sail-Voyage-Id` only). That fixes "not attached to any Voyage" but
-does not fix `Unscoped` / `Missing span`, because those states are driven
-by missing span context. Span/agent attribution requires routing through
-`sail.inference`, which applies the private span/agent headers.
+  For a non-OpenAI-style client, pass `extra_headers=sail.voyage.headers()`
+  per call — the helper carries the full attribution context (voyage id
+  plus the active span and agent) as of the moment you call it.
 
 ## 7. Voyage never reaches terminal status
 
@@ -186,11 +192,17 @@ by missing span context. Span/agent attribution requires routing through
   bypassed the terminal call. Wrap the whole script body in
   `try/except` and call `voyage.fail(error_type=..., message=...)` on
   exception.
+- The terminal flush could not deliver. `complete()`/`fail()` never raise
+  on delivery failure — they warn on stderr and leave the event buffered
+  for background/atexit retry. If the process exits immediately on a dead
+  network, the event can be lost; check stderr for the
+  `could not deliver voyage.completed` warning, and call `voyage.flush()`
+  after the terminal call when you need raise-on-failure confirmation.
 
 **Pattern:**
 
 ```python
-voyage = sail.voyage.init(name="task")
+voyage = sail.voyage.create(name="task")
 try:
     do_work()
     voyage.complete(message="ok")
@@ -199,10 +211,34 @@ except Exception as exc:
     raise
 ```
 
+## 8. Spans you don't remember writing ("auto" chips)
+
+**Symptoms:** the Execution Trace shows spans with an "auto" chip (dashed
+badge), or Waterfall bars with diagonal striping, that your code never
+declared.
+
+**This is expected:** those are auto-spans (ADR-025/026) — the SDK
+synthesizes a span around any Sail inference call or Sailbox exec made with
+no active span, named after your calling function when derivable. They mean
+your work was captured and scoped even where you declared nothing. They are
+not a bug and not double-counting: synthesis never happens inside an
+explicit span.
+
+- To take ownership of a step's name/structure, wrap it in `@sail.span()` /
+  `with voyage.span(...)` — explicit always wins and the auto chip
+  disappears.
+- To disable synthesis entirely, set `SAIL_VOYAGE_AUTO_SPANS=0`; rows then
+  fall back to `Missing span` as before.
+- Auto-spans never invent agents; an agent-less auto-span renders under the
+  system/unattributed lane until you declare an agent.
+
 ## When all else fails
 
-- Re-run with the SDK debug env: `SAIL_VOYAGE_DEBUG=1`. The SDK logs
-  every emit to stderr.
+- Check stderr first: every degradation (disabled telemetry, dropped
+  events, stubbed oversized payloads, undelivered terminal events) emits
+  one `RuntimeWarning` per process unconditionally.
+- Re-run with the SDK debug env: `SAIL_VOYAGE_DEBUG=1` for per-occurrence
+  repeats of those warnings.
 - Compare against a known-good run: run a minimal Voyage you trust (see the
   example in [sail-voyage](../sail-voyage/SKILL.md)) and confirm it renders
   correctly before assuming the dashboard is broken.

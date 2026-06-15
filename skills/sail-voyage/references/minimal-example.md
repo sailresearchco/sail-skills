@@ -1,8 +1,8 @@
 # Minimal Example (reference)
 
 The smallest complete Sail Voyage that still exercises every critical path:
-`init → agent → span → event → @sail.function exec in the Sailbox → sb.read →
-scoped inference call → terminal complete/fail → dashboard handoff`.
+`run → decorated agent/span → @sail.function exec in the Sailbox → sb.read →
+scoped inference call → run() terminal state → dashboard handoff`.
 
 The task is deliberately trivial (count words in a short string inside the
 Sailbox, then have a model write a one-line takeaway). **Copy the shape, not the
@@ -43,6 +43,7 @@ def main() -> None:
     text = "the quick brown fox the lazy dog the fox runs the fox"
 
     # Controller owns the Sailbox and the Voyage; the key never enters the guest.
+    # One long-lived Sailbox for the whole task — created once, terminated once.
     sb = sail.Sailbox.create(
         app=sail.App.find(name="voyage-example", mint_if_missing=True),
         # Add .pip_install("pkg") before .build() if guest functions import
@@ -52,62 +53,68 @@ def main() -> None:
         cpu=1,
         memory_mib=1024,
     )
-    voyage = None
+
+    # Each agent is a function with @sail.agent on it. Declare spans inside —
+    # as inline `with` blocks for several sequential steps (Worker) or a stacked
+    # @sail.span decorator for a single-span function (Analyst). Same frames.
+    @sail.agent("Worker", role="executor")
+    def worker() -> dict:
+        with sail.voyage.span("count words"):
+            result = sb.exec(word_counts, text, timeout=60)  # attributed exec row
+            sail.voyage.event(
+                "work.completed",
+                payload={"total": result["total"]},  # bounded, no raw blobs
+            )
+        with sail.voyage.span("retrieve artifact"):
+            data = sb.read(result["path"])  # pull the guest's file to the host
+            sail.voyage.event(
+                "artifact.result.ready",
+                payload={
+                    "path_hint": result["path"],
+                    "bytes": len(data),
+                    "sha256": hashlib.sha256(data).hexdigest(),
+                },
+            )
+        return result
+
+    @sail.agent("Analyst", role="analyst")
+    @sail.span("summarize")
+    def analyst(top) -> None:
+        # One scoped Sail inference call → model-call row, auto-attributed here.
+        response = sail.inference.responses.create(
+            model="zai-org/GLM-5",
+            input=f"In one sentence, describe these word counts: {top}",
+            background=False,
+            timeout=120,
+        )
+        sail.voyage.event("summary.ready", payload={"response_id": response.get("id", "")})
+
+    # The Sailbox is created before the Voyage, so guard it around the whole
+    # run(): if entering run() fails (e.g. a transient Voyage API error) the box
+    # already exists and must still be torn down. terminate() is idempotent, so
+    # the two cleanup paths below never double-free.
     try:
-        # Create the Voyage inside the cleanup guard: if init fails, the finally
-        # block still terminates the Sailbox instead of leaking it.
-        voyage = sail.voyage.init(
+        with sail.voyage.run(
             name="example-task",  # stable series name
             version=1,  # bump only when the workflow definition changes
             sailbox_id=sb.sailbox_id,
             metadata={"source": "minimal-example"},
-        )
-
-        # Worker agent: do the work in the Sailbox → attributed exec row.
-        with voyage.agent("Worker", role="executor"):
-            with voyage.span("count words"):
-                result = sb.exec(word_counts, text, timeout=60)
-                voyage.event(
-                    "work.completed",
-                    payload={"total": result["total"]},  # bounded, no raw blobs
-                )
-            with voyage.span("retrieve artifact"):
-                data = sb.read(result["path"])  # pull the guest's file to the host
-                voyage.event(
-                    "artifact.result.ready",
-                    payload={
-                        "path_hint": result["path"],
-                        "bytes": len(data),
-                        "sha256": hashlib.sha256(data).hexdigest(),
-                    },
-                )
-
-        # Analyst agent: one scoped Sail inference call → model-call row.
-        with voyage.agent("Analyst", role="analyst"):
-            with voyage.span("summarize"):
-                response = sail.inference.responses.create(
-                    model="zai-org/GLM-5",
-                    input=f"In one sentence, describe these word counts: {result['top']}",
-                    background=False,
-                    timeout=120,
-                )
-                voyage.event(
-                    "summary.ready",
-                    payload={"response_id": response.get("id", "")},
-                )
-
-        # Clean up the Sailbox BEFORE the terminal event, so a cleanup failure
-        # becomes voyage.failed rather than a "completed" Voyage on a crashed run.
-        sb.terminate()
-        sb = None
-        voyage.complete(message="example task complete")
-    except Exception as exc:
-        if voyage is not None:
-            voyage.fail(error_type=exc.__class__.__name__, message=str(exc))
-        raise
+        ) as voyage:
+            try:
+                result = worker()
+                analyst(result["top"])
+            finally:
+                # Terminate INSIDE the run() block, before the terminal event,
+                # so a cleanup failure becomes voyage.failed rather than a
+                # "completed" Voyage on a leaked box.
+                sb.terminate()
+        # run() emits the terminal state on exit: completed on clean exit,
+        # failed + re-raise on exception. No complete()/fail() here.
     finally:
-        if sb is not None:
-            sb.terminate()
+        # Safety net for the case where run() never entered (idempotent). A
+        # long-running service instead keeps one box warm and reuses it across
+        # runs — see multi-agent.md.
+        sb.terminate()
 
     print(voyage.id)
     print(voyage.dashboard_url)

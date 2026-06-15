@@ -15,7 +15,7 @@ scoped to the right agent.
 
 - Any call to `sail.inference.responses.create()` /
   `sail.inference.chat.completions.create()` from inside a
-  `sail.voyage.init(...)` context.
+  `sail.voyage.run(...)` (or `create(...)`) context.
 - Wrapping a raw OpenAI client when you can't switch to the SDK helper
   but still want Voyage attribution.
 
@@ -44,34 +44,44 @@ happens in a different Voyage.
 ```python
 import sail
 
-voyage = sail.voyage.init(name="agent-with-inference")
 
-with voyage.agent("Reviewer", role="reviewer"):
-    with voyage.span("draft-response"):
-        # Headers attached automatically because we're inside a voyage.
-        response = sail.inference.responses.create(
-            model="zai-org/GLM-5",
-            input="Summarize this diff in one paragraph: ...",
-            background=False,
-            timeout=120,
-        )
-        voyage.event("response.drafted", payload={"response_id": response["id"]})
+@sail.agent("Reviewer", role="reviewer")
+@sail.span("draft-response")
+def draft():
+    # Headers attached automatically because a Voyage is active; the call
+    # auto-attributes to this agent/span.
+    response = sail.inference.responses.create(
+        model="zai-org/GLM-5",
+        input="Summarize this diff in one paragraph: ...",
+        background=False,
+        timeout=120,
+    )
+    sail.voyage.event("response.drafted", payload={"response_id": response["id"]})
 
-voyage.complete(message="done")
+
+with sail.voyage.run(name="agent-with-inference", version=1):
+    draft()
 ```
 
 Nothing special needed. The Voyage/agent/span context propagates through
-`sail.inference._merge_voyage_headers` → request headers → backend
-attribution.
+`sail.voyage.headers()` → request headers → backend attribution.
+
+**No active span?** The wrapper synthesizes one automatically (an
+"auto-span", marked `_auto` and chipped in the cockpit), named after your
+calling function — so wrapper calls never land as `Missing span`. Explicit
+spans always win; `SAIL_VOYAGE_AUTO_SPANS=0` disables synthesis. Raw
+clients don't get synthesis (headers are request-time only) — wrap those
+calls in a span yourself when scoping matters.
 
 For a recurring production workflow, use the current series/version shape:
 
 ```python
-voyage = sail.voyage.init(
+with sail.voyage.run(
     name="deep-research",
     version=3,
     metadata={"topic": "Voyages public launch"},
-)
+):
+    ...
 ```
 
 ## Background mode
@@ -91,45 +101,52 @@ to poll or for parallel fan-out. Caveats:
 
 ## Wrapping a raw OpenAI client
 
-If you can't switch to `sail.inference.*` (e.g., third-party library uses
-the OpenAI client directly), attach headers explicitly:
+If you can't switch to `sail.inference.*` (e.g., a third-party library uses
+the OpenAI client directly), wrap the client once with
+`sail.voyage.wrap_openai()` — every call then computes the attribution
+headers at call time and un-spanned calls get the same synthesized
+auto-spans as `sail.inference.*`:
 
 ```python
 from openai import OpenAI
 import sail
 
-voyage = sail.voyage.init(name="raw-client")
 cfg = sail.Config.from_env()
-client = OpenAI(
-    api_key=cfg.api_key,
-    base_url=f"{cfg.api_url.rstrip('/')}/v1",
+client = sail.voyage.wrap_openai(
+    OpenAI(api_key=cfg.api_key, base_url=f"{cfg.api_url.rstrip('/')}/v1")
 )
 
-with voyage.agent("Reviewer", role="reviewer"):
-    with voyage.span("call"):
-        response = client.responses.create(
-            model="zai-org/GLM-5",
-            input="...",
-            extra_headers=sail.voyage.headers(),
-        )
+with sail.voyage.run(name="raw-client", version=1) as voyage:
+    with voyage.agent("Reviewer", role="reviewer"):
+        with voyage.span("call"):
+            response = client.responses.create(model="zai-org/GLM-5", input="...")
 ```
 
-**`sail.voyage.headers()` is the public helper, and it attaches
-`X-Sail-Voyage-Id` only.** Raw-client calls therefore get Voyage-level
-attribution but still appear as unscoped in span/agent panels. Span/agent
-attribution is applied internally by the SDK's `sail.inference.*` helpers —
-route calls through them whenever scoped attribution matters.
+`wrap_openai` wraps `responses.create`, `responses.retrieve`, and
+`chat.completions.create` in place — every holder of that client object
+sees attributed calls, so wrap a dedicated client if some callers must stay
+unattributed. It is idempotent, supports `AsyncOpenAI` (the auto-span
+covers the awaited request), and follows the process-global current Voyage
+per call (pass `voyage=` to pin one).
+
+For any non-OpenAI-style HTTP client, attach
+`sail.voyage.headers()` yourself — it carries the full attribution context
+(voyage id plus the span and agent active at the moment you call it).
+**Compute it per call, never once at client construction**:
+`OpenAI(default_headers=sail.voyage.headers())` freezes whatever context
+was active at construction onto every later call — constructed inside a
+span, that pins the wrong span to your whole run. (`wrap_openai` makes this
+mistake unrepresentable; prefer it whenever the client is OpenAI-style.)
 
 ## Common pitfalls
 
 - **Calling `sail.inference.responses.create()` outside a Voyage.** It
   still works, but it does not create a `voyage_model_calls` row for any
   Voyage and will not appear in a Voyage dashboard. If you intended
-  Voyage attribution, you forgot the `sail.voyage.init(...)`.
-- **Mixing SDK and raw-client calls in the same agent.** Some calls get
-  span/agent attribution (via the SDK), others get only Voyage-level
-  (via `sail.voyage.headers()`). Inconsistent. Pick one and stick with
-  it.
+  Voyage attribution, you forgot to open a Voyage (`sail.voyage.run(...)`).
+- **Baking `sail.voyage.headers()` into `default_headers` at client
+  construction.** That snapshots one span/agent context onto every later
+  call. Pass `extra_headers=sail.voyage.headers()` per call instead.
 - **Reusing a `response_id` across Voyages.** The first attribution wins
   forever; subsequent calls are effectively orphaned from a Voyage
   perspective. Don't try to "fix" an attribution mistake by re-calling

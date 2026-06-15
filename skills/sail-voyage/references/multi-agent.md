@@ -25,9 +25,10 @@ Voyage (one per task)
               └── Event, model call, exec
 ```
 
-Agents are SDK-level contexts, not separate processes. They are created by
-entering `with voyage.agent("Agent Name", role=...)`. Multiple agents can
-be active in one Voyage; nested agents push a stack.
+Agents are SDK-level contexts, not separate processes. Declare each with
+`@sail.agent("Agent Name", role=...)` on its function (or `with
+voyage.agent("Agent Name", role=...)` inline). Multiple agents can be active in
+one Voyage; nested agents push a stack.
 
 ## name, role, and slug
 
@@ -51,48 +52,60 @@ and roles stable across runs of a series.
 ```python
 import sail
 
-voyage = sail.voyage.init(
-    name="multi-agent-code-review",
-    version=2,
-    metadata={"pr_number": 1234},
-)
-
+# One long-lived Sailbox, shared by all three agents below. A real review
+# service reconnects to a kept-warm box (`Sailbox.connect`) and reuses it across
+# PRs rather than creating one per run.
 sb = sail.Sailbox.create(
     app=sail.App.find(name="my-review-app", mint_if_missing=True),
     image=sail.Image.debian_arm64.apt_install("git").build(),
     name="multi-agent-review-demo",
 )
 
+
 # Agent 1: clone the repo (attributed to GitHub agent). Public repo here —
 # never inline tokens in exec strings.
-with voyage.agent("GitHub", role="source_control"):
-    with voyage.span("clone"):
-        clone_req = sb.exec(
-            "git clone --depth 1 https://github.com/octocat/Hello-World.git /tmp/repo",
-            timeout=120,
-        )
-        clone_req.wait()
+@sail.agent("GitHub", role="source_control")
+@sail.span("clone")
+def clone_repo():
+    sb.exec(
+        "git clone --depth 1 https://github.com/octocat/Hello-World.git /tmp/repo",
+        timeout=120,
+    ).wait()
+
 
 # Agent 2: run checks (attributed to TestRunner agent).
-with voyage.agent("TestRunner", role="executor"):
-    with voyage.span("run checks"):
-        # Stand-in check that succeeds in any cloned repo; swap in your repo's
-        # real test command (pytest, npm test, ...).
-        test_req = sb.exec("cd /tmp/repo && python3 -m compileall -q .", timeout=600)
-        test_req.wait()
+@sail.agent("TestRunner", role="executor")
+@sail.span("run checks")
+def run_checks():
+    # Stand-in check that succeeds in any cloned repo; swap in your repo's real
+    # test command (pytest, npm test, ...).
+    sb.exec("cd /tmp/repo && python3 -m compileall -q .", timeout=600).wait()
+
 
 # Agent 3: review (attributed to Reviewer agent, with a Sail inference call).
-with voyage.agent("Reviewer", role="reviewer"):
-    with voyage.span("draft-comments"):
-        response = sail.inference.responses.create(
-            model="zai-org/GLM-5",
-            input="Review the diff in /tmp/repo and write a one-paragraph summary.",
-            background=False,
-            timeout=120,
-        )
-        voyage.event("review.drafted", payload={"response_id": response["id"]})
+@sail.agent("Reviewer", role="reviewer")
+@sail.span("draft-comments")
+def review():
+    response = sail.inference.responses.create(
+        model="zai-org/GLM-5",
+        input="Review the diff in /tmp/repo and write a one-paragraph summary.",
+        background=False,
+        timeout=120,
+    )
+    sail.voyage.event("review.drafted", payload={"response_id": response["id"]})
 
-voyage.complete(message="Multi-agent review finished")
+
+with sail.voyage.run(
+    name="multi-agent-code-review",
+    version=2,
+    sailbox_id=sb.sailbox_id,
+    metadata={"pr_number": 1234},
+):
+    clone_repo()
+    run_checks()
+    review()
+# run() emits the terminal state on exit. The shared Sailbox is long-lived —
+# terminate it when the review service shuts down, not per run.
 ```
 
 ## What this gives you
