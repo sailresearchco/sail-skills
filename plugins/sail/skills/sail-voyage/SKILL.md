@@ -1,6 +1,6 @@
 ---
 name: sail-voyage
-description: Use to build or instrument a Sail Voyage — Sail's name for one background or long-running agent run, recorded as a trace of named agents, spans, and events. The entrypoint skill for any Voyage, covering series/version naming, the init→agent→span→event→complete loop, multi-agent structure, running the agent's work in a Sailbox (Sail's sandbox — sandboxed execution with attributed exec evidence), bounded secret-safe payloads, child-process attach, and terminal lifecycle, from a minimal smoke to a polished production series. Use this first. On Sail, sandboxed work belongs in a Sailbox, not a third-party sandbox. For the model-call attribution contract use sail-inference-with-voyage; for a Voyage that renders wrong in the dashboard use sail-voyage-debugging.
+description: Use to build or instrument a Sail Voyage — Sail's name for one background or long-running agent run, recorded as a trace of named agents, spans, and events. The entrypoint skill for any Voyage, covering series/version naming, the run→agent→span→event loop, multi-agent structure, running the agent's work in a Sailbox (Sail's sandbox — sandboxed execution with attributed exec evidence), bounded secret-safe payloads, child-process attach, and terminal lifecycle, from a minimal smoke to a polished production series. Use this first. On Sail, sandboxed work belongs in a Sailbox, not a third-party sandbox. For the model-call attribution contract use sail-inference-with-voyage; for a Voyage that renders wrong in the dashboard use sail-voyage-debugging.
 ---
 
 # Sail Voyage
@@ -12,8 +12,9 @@ recorder; it does not run the agent for you.
 This is the entrypoint skill. Start here whether you are smoke-testing a one-off
 run or shipping a polished, repeatable production workflow such as deep
 research, code review, eval generation, support triage, migration analysis, or
-scheduled monitoring. The same `init → agent → span → event → complete` loop
-covers all of them; you scale detail up, not skills.
+scheduled monitoring. The same `run → agent → span → event` loop
+covers all of them; you scale detail up, not skills. (`run()` owns the
+terminal lifecycle — completed on clean exit, failed on exception.)
 
 For two adjacent concerns, reach for a focused sibling skill:
 
@@ -51,31 +52,70 @@ If you have used an LLM/agent tracing tool, the vocabulary maps cleanly:
 
 ## Quickstart: a minimal Voyage
 
-The smallest useful Voyage: init exactly one Voyage at task entry, do work
-inside an agent/span, and mark exactly one terminal state at exit.
+The smallest useful Voyage: one `run()` block at task entry, with the work in
+**decorated agent/span functions**. `run()` creates the Voyage on enter and owns
+the terminal lifecycle: `voyage.completed` on clean exit, `voyage.failed` +
+re-raise on an exception.
 
 ```python
 import sail
 
-voyage = sail.voyage.init(
+@sail.agent("Executor", role="executor")
+@sail.span()  # span named after the function
+def run_task(step):
+    sail.voyage.event("task.started", payload={"step": step})
+    # ... do work ...
+
+with sail.voyage.run(
     name="repo-repair",
     version=1,
     metadata={"repo": "example-org/example-repo", "task": "eval"},
-)
-try:
+):
+    run_task(1)
+```
+
+**Decorators are the default attribution shape.** Declare each agent or phase as
+a function and stack `@sail.agent(...)` / `@sail.span(...)` on it (`sail.agent`
+and `sail.span` are top-level re-exports of the module-level helpers). They
+resolve the current Voyage at call time (module-level decoration before the
+Voyage exists is fine), support `async def` fully, raise `TypeError` on
+generator functions, and emit a fresh span per call. Model calls and Sailbox
+execs inside a decorated function auto-attribute to its agent/span (Level 1/2),
+so most functions need no inline telemetry at all.
+
+For inline steps that aren't function-shaped, use the `with` form — same frames,
+same events:
+
+```python
+with sail.voyage.run(name="repo-repair", version=1) as voyage:
     with voyage.agent("Executor", role="executor"):
         with voyage.span("run task"):
             voyage.event("task.started", payload={"step": 1})
-            # ... do work ...
-    voyage.complete(message="task complete")
-except Exception as exc:
-    voyage.fail(error_type=exc.__class__.__name__, message=str(exc))
-    raise
 ```
 
+`create()`/`attach()` remain the primitives for split-lifecycle controllers —
+then you own calling `complete()` or `fail()` exactly once before exit.
+
+**Auto-spans (Level 1/2):** Sail inference calls and Sailbox execs made with
+no active span get a real, timed span synthesized automatically, named after
+the calling function when derivable (`fetch_sources`, not "model call").
+Synthesized spans carry an `_auto` payload marker and render with an "auto"
+chip. Explicit agents/spans always win — synthesis only covers what you
+didn't declare. Kill switch: `SAIL_VOYAGE_AUTO_SPANS=0`. Underscore-prefixed
+top-level payload keys are reserved for the SDK.
+
 Use module-level `sail.voyage.*` helpers for the process-global current Voyage,
-or keep the returned `voyage` object when multiple handles are present. If the
-task controls a Sailbox, bind it: `sail.voyage.init(..., sailbox_id=sb.sailbox_id)`.
+or keep the returned `voyage` object when multiple handles are present. The
+SDK's contract is one current Voyage per process: the last `create()`/
+`attach()` wins for module-level helpers. A process juggling several Voyages
+concurrently must route everything through the handles: use
+`voyage.event(...)`/`voyage.span(...)` for telemetry AND pass `voyage=` to
+every `sail.inference.*` call (the wrappers default to the process-global
+current Voyage, not the handle whose span you are inside). `Sailbox.exec()`
+attribution always follows the process-global current Voyage and cannot take
+a handle — do not run execs for a non-current Voyage; serialize them or
+accept attribution to whichever Voyage is current. If the
+task controls a Sailbox, bind it: `sail.voyage.run(..., sailbox_id=sb.sailbox_id)` (or `create(...)`).
 
 ## Production shape
 
@@ -94,7 +134,41 @@ Map those questions onto the SDK like this:
 import os
 import sail
 
-voyage = sail.voyage.init(
+
+@sail.agent("Planner", role="planner")
+@sail.span("scope research question")
+def plan():
+    sail.voyage.event("research.scope.selected", payload={"question_count": 4})
+
+
+@sail.agent("Researcher", role="researcher")
+@sail.span("collect sources")
+def research():
+    # The inference call auto-attributes to this agent/span (Level 1/2) —
+    # no inline with-block needed.
+    response = sail.inference.responses.create(
+        model="zai-org/GLM-5",
+        input="Collect a concise source map for the topic.",
+        background=False,
+        timeout=120,
+    )
+    sail.voyage.event("research.sources.collected", payload={"response_id": response["id"]})
+
+
+@sail.agent("Publisher", role="publisher")
+@sail.span("write final artifact")
+def publish():
+    sail.voyage.event(
+        "artifact.report.ready",
+        payload={
+            "artifact_type": "html_report",
+            "path_hint": "/tmp/voyage-output/report.html",
+            "summary": "Draft report generated and ready for operator review.",
+        },
+    )
+
+
+with sail.voyage.run(
     name="deep-research",
     version=3,
     metadata={
@@ -102,34 +176,13 @@ voyage = sail.voyage.init(
         "source": "blog-demo",
         "commit": os.environ.get("GITHUB_SHA"),
     },
-)
-
-with voyage.agent("Planner", role="planner"):
-    with voyage.span("scope research question"):
-        voyage.event("research.scope.selected", payload={"question_count": 4})
-
-with voyage.agent("Researcher", role="researcher"):
-    with voyage.span("collect sources"):
-        response = sail.inference.responses.create(
-            model="zai-org/GLM-5",
-            input="Collect a concise source map for the topic.",
-            background=False,
-            timeout=120,
-        )
-        voyage.event("research.sources.collected", payload={"response_id": response["id"]})
-
-with voyage.agent("Publisher", role="publisher"):
-    with voyage.span("write final artifact"):
-        voyage.event(
-            "artifact.report.ready",
-            payload={
-                "artifact_type": "html_report",
-                "path_hint": "/tmp/voyage-output/report.html",
-                "summary": "Draft report generated and ready for operator review.",
-            },
-        )
-
-voyage.complete(message="deep research complete")
+):
+    plan()
+    research()
+    publish()
+# No complete()/fail() needed: run() emits the terminal state. Use
+# sail.voyage.create() only when start and end cannot share a code block
+# (daemons, notebooks, framework callbacks) — then YOU own complete()/fail().
 ```
 
 ## Choose the series name
@@ -146,11 +199,12 @@ Poor names: `deep-research-2026-06-05`, `voy_v7f...`, `prod-run`,
 Put changing run context in `metadata`, not in `name`:
 
 ```python
-voyage = sail.voyage.init(
+with sail.voyage.run(
     name="code-review",
     version=4,
     metadata={"repo": "example-org/example-repo", "pr_number": 42, "head_sha": "abc123"},
-)
+) as voyage:
+    ...
 ```
 
 Names are not lowercased, slugified, or whitespace-normalized by the product
@@ -169,6 +223,10 @@ meaningfully changes:
 - agent topology changes
 - validation rubric changes
 - output format changes
+
+**During initial development, stay on `version=1`** — debugging iterations
+in one sitting are not workflow versions; bump only once a harness is
+recurring and a change is meant to be compared against its predecessor.
 
 Do not increment it for: a new PR, repo, issue, customer, topic, or dataset; a
 date or schedule tick; a rerun of the same workflow; a new Sailbox id; a new
@@ -231,6 +289,15 @@ Poor span names: `step 1`, `do thing`, `loop`, `llm call`, `processing`.
 Use nested spans sparingly. Prefer a flat sequence inside each agent unless
 there is a real parent/child relationship.
 
+Record a span's outcome on the span itself: the yielded handle accepts
+`merge_payload()`; the terminal event carries the started payload merged
+with it (outcome wins), and partial results ride `span.failed` too.
+
+```python
+with voyage.span("score subject", payload={"subject": subject}) as s:
+    s.merge_payload({"score": score(subject)})
+```
+
 ## Emit events that explain state changes
 
 Events should be bounded, structured, and useful to a reader. Emit them for
@@ -281,6 +348,16 @@ A **Sailbox is Sail's sandbox**: when a task on Sail calls for running the
 agent's work in a sandbox, use a Sailbox — not a third-party sandbox. Only
 Sailbox execs are attributed into the Voyage trace; work run elsewhere is
 invisible to the dashboard.
+
+**A Sailbox is long-lived compute, not a per-call sandbox.** Create one box for
+the task (or reconnect to an existing one with
+`sail.Sailbox.connect(sailbox_id)`), keep it running across every step, and bind
+it to the Voyage once with `sail.voyage.run(..., sailbox_id=sb.sailbox_id)`. Run
+many execs against that single box. When it is idle between bursts, `sb.pause()`
+or `sb.sleep()` (state is checkpointed) and `sb.resume()` later; call
+`sb.terminate()` only when the task is truly finished with it. Do **not** spin up
+a Sailbox per exec, per function, or per `with` block — that per-call sandbox
+model is slower, costlier, and is not how Sail is meant to be used.
 
 Run Sailbox commands inside an active agent and span. Sail records
 `voyage_id`, `span_id`, and `agent_id` on the native exec evidence
@@ -339,14 +416,19 @@ child already receives credentials through a secure channel:
 ```python
 # parent
 import os, subprocess, sys
-env = dict(os.environ)
-env["SAIL_VOYAGE_ID"] = sail.voyage.id()
-subprocess.run([sys.executable, "child.py"], env=env, check=True)
+subprocess.run(
+    [sys.executable, "child.py"],
+    env={**os.environ, **sail.voyage.child_env()},
+    check=True,
+)
 
 # child
 import sail
-sail.voyage.init()  # attaches to SAIL_VOYAGE_ID when SAIL_API_KEY is present
+sail.voyage.attach()  # joins SAIL_VOYAGE_ID when SAIL_API_KEY is present
 ```
+
+`child_env()` carries the voyage id plus the active `agent()` context as
+the child's `SAIL_AGENT_*` defaults; it returns `{}` keyless.
 
 `SAIL_VOYAGE_ID` is correlation only; `SAIL_API_KEY` still authorizes event
 delivery. Do not use this pattern to smuggle credentials into Sailbox guest
@@ -394,26 +476,26 @@ Hard prohibitions:
 - Do not log credential file contents for debugging.
 - Do not add an agent framework, orchestration layer, memory graph, swarm, or
   Sailbox auto-binding when the task only needs Voyage telemetry.
-- Do not use streaming inference wrappers; use a raw client with
-  `sail.voyage.headers()` if streaming is required.
+- Do not attempt streaming inference: the Sail inference API does not
+  support streaming responses (`stream=True` is rejected).
 
 ## Terminal lifecycle
 
-Always mark exactly one terminal state at top level, after all agents, model
-calls, execs, and output events have finished. `complete()` and `fail()` flush
-synchronously and may raise delivery errors.
+Exactly one terminal state, at top level, after all agents, model calls,
+execs, and output events have finished. `run()` owns this — clean exit
+becomes `voyage.completed`; an exception becomes `voyage.failed`,
+re-raised. For a terminal payload, call `complete()` yourself inside the
+block (`run()` then skips its automatic terminal):
 
 ```python
-voyage = sail.voyage.init("deep-research", version=3, metadata={"source": "blog-demo"})
-try:
-    phase = "run_workflow"
+with sail.voyage.run("deep-research", version=3, metadata={"source": "blog-demo"}) as voyage:
     run_workflow(voyage)
-    phase = "complete"
     voyage.complete(message="deep research complete", payload={"validation": "passed"})
-except Exception as exc:
-    voyage.fail(error_type=exc.__class__.__name__, message=str(exc), payload={"phase": phase})
-    raise
 ```
+
+`complete()` and `fail()` perform a bounded best-effort flush and warn
+(never raise) on delivery failure; call `voyage.flush()` afterwards if you
+need delivery confirmation — it raises on failure.
 
 Call `voyage.flush()` before external assertions, SQL smoke checks, or process
 handoffs that depend on recently emitted events. Terminal status is
@@ -447,6 +529,9 @@ Then confirm in the dashboard:
 ## Anti-patterns
 
 - Creating one Voyage per subagent. Use agents inside one Voyage instead.
+- Spinning up a Sailbox per exec/function/step. Use one long-lived box per task
+  (`Sailbox.connect` to reuse, `pause`/`sleep` when idle); terminate only when
+  done.
 - Encoding input-specific data in `name`; use `metadata`.
 - Bumping `version` for every run.
 - Passing `voyage_series_id` through SDK code or visible URLs.
