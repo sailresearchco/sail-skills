@@ -45,7 +45,7 @@ happens in a different Voyage.
 import sail
 
 
-@sail.agent("Reviewer", role="reviewer")
+@sail.agent("Reviewer")
 @sail.span("draft-response")
 def draft():
     # Headers attached automatically because a Voyage is active; the call
@@ -117,7 +117,7 @@ client = sail.voyage.wrap_openai(
 )
 
 with sail.voyage.run(name="raw-client", version=1) as voyage:
-    with voyage.agent("Reviewer", role="reviewer"):
+    with voyage.agent("Reviewer"):
         with voyage.span("call"):
             response = client.responses.create(model="zai-org/GLM-5", input="...")
 ```

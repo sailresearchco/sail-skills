@@ -58,7 +58,8 @@ relative path) or download this repository as a ZIP.
 1. A Sail account and an org API key — create one at
    <https://app.sailresearch.com/api-keys>.
 2. `export SAIL_API_KEY=sk_...` in the environment your agent runs in (the SDK
-   reads the environment directly).
+   reads the environment directly). Do not substitute `sail auth login` for SDK
+   agents yet; that CLI state is not read by plain Python processes.
 3. The Python SDK: `pip install "sail-sdk>=0.2.1"` — the current examples need 0.2.1+.
 
 ## Quick start
