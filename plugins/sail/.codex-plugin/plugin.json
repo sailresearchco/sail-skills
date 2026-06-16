@@ -1,6 +1,6 @@
 {
   "name": "sail",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Build, instrument, and debug Sail Voyage observability flows with series history, Sail inference attribution, and Sailbox execution evidence. Public v1 ships Voyage skills; broader Sail skills belong in this namespace over time.",
   "author": {
     "name": "Sail Research",
