@@ -24,7 +24,7 @@ For two adjacent concerns, reach for a focused sibling skill:
   [sail-voyage-debugging](../sail-voyage-debugging/SKILL.md)
 
 For the full multi-agent attribution model (name, role, and slug semantics, per-agent
-pitfalls, SQL verification), see
+pitfalls, and dashboard verification), see
 [references/multi-agent.md](references/multi-agent.md). For a complete runnable
 skeleton, see [references/minimal-example.md](references/minimal-example.md).
 
@@ -273,7 +273,7 @@ When one Voyage involves multiple cooperating agents (e.g. a Reviewer that reads
 code and a TestRunner that runs tests in a shared Sailbox), each agent gets its
 own spans, events, model calls, and exec rows but they all belong to one Voyage.
 For the name / `role=` / `slug=` semantics, the full multi-agent example,
-common mis-attribution pitfalls, and the verification SQL, see
+common mis-attribution pitfalls, and dashboard verification, see
 [references/multi-agent.md](references/multi-agent.md).
 
 ## Design spans for causality
@@ -437,7 +437,7 @@ with sail.voyage.run("deep-research", version=3, metadata={"source": "blog-demo"
 (never raise) on delivery failure; call `voyage.flush()` afterwards if you
 need delivery confirmation — it raises on failure.
 
-Call `voyage.flush()` before external assertions, SQL smoke checks, or process
+Call `voyage.flush()` before external assertions, dashboard checks, or process
 handoffs that depend on recently emitted events. Terminal status is
 first-terminal-wins; do not call `complete()` from inside a nested agent context
 or while background threads or model calls may still emit.

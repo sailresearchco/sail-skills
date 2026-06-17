@@ -94,8 +94,8 @@ wrong.
 
 **Most likely cause:** events were emitted outside any
 `with voyage.agent(...)` block. The dashboard derives the agent list
-from `voyage_events.agent_name`, which is populated from the active
-agent contextvar at event time.
+from stored event attribution, which is populated from the active agent
+context at event time.
 
 **Fix:** wrap event/span emission in `with voyage.agent("Agent Name", role=...)`.
 See [sail-voyage multi-agent reference](../sail-voyage/references/multi-agent.md).
@@ -129,22 +129,19 @@ Waterfall, or native exec evidence views do not show the command.
   `voyage.create()` at start, or run the exec inside a Voyage agent/span
   context. Sail associates the exec row through request metadata from the
   active context.
-- **No active span when the exec dispatched.** Without an active span,
-  `span_id` is null and the exec may not appear in some
-  span-filtered views. Always exec inside a `with voyage.span(...)`
-  block.
+- **The exec dispatched outside any agent context.** The SDK can synthesize
+  an auto-span for an un-spanned exec, but it does not invent an agent. Put the
+  exec inside `@sail.agent(...)` / `with voyage.agent(...)` so the dashboard can
+  show who caused the work.
+- **The request never reached `.wait()`.** Foreground Sailbox exec auto-spans
+  close when `.wait()` observes the result. If you dispatch and drop the handle,
+  the dashboard may show a partial started span.
 
-**Diagnose with SQL** (requires direct DB access — Sail operators only;
-customers should check the dashboard's exec evidence views instead):
-
-```sql
-SELECT exec_request_id, voyage_id, span_id, agent_id
-  FROM sailbox_execs
- WHERE sailbox_id = '<your sailbox id>'
- ORDER BY created_at DESC;
-```
-
-If `voyage_id` is NULL: the exec ran outside any Voyage context.
+**Diagnose in the dashboard:** open the Voyage detail page, then check
+Execution Trace and the Sailbox/native exec evidence view. The exec should show
+the expected Sailbox id, command preview, agent name, and span. If the command
+is present but agent/span are missing, move the `exec(...).wait()` call inside
+the intended agent/span function and re-run.
 
 ## 6. "Unscoped" model calls > 0
 

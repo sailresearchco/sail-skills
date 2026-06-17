@@ -31,13 +31,13 @@ Every inference call inside an active Voyage gets these headers attached:
 | `X-Sail-Voyage-Span-Id`      | Optional. Scopes the call to a specific span.            |
 | `X-Sail-Voyage-Agent-Id`     | Optional. Scopes the call to a specific named agent.     |
 
-The backend persists these into `voyage_model_calls` with the call's
-`response_id` as the key.
+Sail records the model-call association with the call's `response_id` as
+the key.
 
 **`response_id` is immutable, first-association-wins.** If you retry an
-inference with the same `response_id`, the row stays attached to whichever
-Voyage was active at first successful association — even if the retry
-happens in a different Voyage.
+inference with the same `response_id`, the existing association stays
+attached to whichever Voyage was active at first successful association —
+even if the retry happens in a different Voyage.
 
 ## Copy-paste-ready example (SDK helper, automatic attribution)
 
@@ -141,9 +141,9 @@ mistake unrepresentable; prefer it whenever the client is OpenAI-style.)
 ## Common pitfalls
 
 - **Calling `sail.inference.responses.create()` outside a Voyage.** It
-  still works, but it does not create a `voyage_model_calls` row for any
-  Voyage and will not appear in a Voyage dashboard. If you intended
-  Voyage attribution, you forgot to open a Voyage (`sail.voyage.run(...)`).
+  still works, but it does not create any Voyage dashboard model-call
+  association. If you intended Voyage attribution, you forgot to open a
+  Voyage (`sail.voyage.run(...)`).
 - **Baking `sail.voyage.headers()` into `default_headers` at client
   construction.** That snapshots one span/agent context onto every later
   call. Pass `extra_headers=sail.voyage.headers()` per call instead.
@@ -161,8 +161,8 @@ mistake unrepresentable; prefer it whenever the client is OpenAI-style.)
   `level="warn"` event — instead of letting one malformed reply crash the
   run, and only report a successful parse when real values were found.
 - **Putting model output that contains secrets into Voyage payloads.**
-  The dashboard has redaction at the SQL ingestion layer, but the safest
-  pattern is to summarize / hash before storing.
+  Dashboard redaction is a backstop, not a design pattern. Summarize, hash, or
+  omit sensitive values before storing them in Voyage events or metadata.
 
 ## Verify it worked
 
@@ -175,17 +175,10 @@ Dashboard checklist:
   `in_progress`, see
   [sail-voyage-debugging section 4](../sail-voyage-debugging/SKILL.md).
 - Waterfall model rows render solid, not striped.
-
-SQL spot-check (requires direct DB access — Sail operators only; customers
-should use the dashboard checks above):
-
-```sql
-SELECT response_id, voyage_id, span_id, agent_id, model
-  FROM voyage_model_calls
- WHERE voyage_id = '<voy>';
-```
-
-Every row should have non-null `voyage_id`, `span_id`, `agent_id`.
+- Each model call row shows the expected agent/span. If a row is unscoped,
+  move the inference call inside `@sail.agent(...)` and `@sail.span(...)`, or
+  use the SDK helper / `wrap_openai()` path so headers are computed at request
+  time.
 
 ## Reference
 

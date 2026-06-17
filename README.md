@@ -10,7 +10,9 @@ These skills follow the open [Agent Skills](https://agentskills.io) standard:
 plain `SKILL.md` folders, packaged as installable plugins for both **Claude
 Code** and **Codex**. Other Agent Skills-compatible tools can use the same
 skill folders where they support importing standard skills. The package
-contains **no hooks, scripts, or MCP servers** — markdown only.
+contains **no hooks, scripts, MCP servers, or Codex app connector** — markdown
+only. Installing the plugin does not require a Sail API key; set `SAIL_API_KEY`
+only when running code that calls Sail services.
 
 ## What's included
 
