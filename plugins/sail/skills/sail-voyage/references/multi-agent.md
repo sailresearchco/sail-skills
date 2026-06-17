@@ -155,24 +155,15 @@ Dashboard checklist:
 - Native model calls panel: `Scoped` count equals the total inference calls;
   `Missing span` is zero.
 
-SQL spot-check (requires direct DB access — Sail operators only; customers
-should use the dashboard checks above):
+Expected dashboard shape:
 
-```sql
-SELECT DISTINCT agent_name FROM voyage_events WHERE voyage_id = '<voy>';
-SELECT exec_request_id, agent_id, span_id, voyage_id FROM sailbox_execs WHERE voyage_id = '<voy>';
-SELECT response_id, agent_id, span_id FROM voyage_model_calls WHERE voyage_id = '<voy>';
-```
-
-Expected shape:
-
-- `sailbox_execs` rows created inside `with voyage.agent(...)` /
-  `with voyage.span(...)` should have non-null `agent_id` and `span_id`.
-- `voyage_model_calls` rows created through `sail.inference.*` inside an
-  agent/span should have non-null `agent_id` and `span_id`.
-- `voyage_events` includes top-level lifecycle events such as `voyage.started`,
-  so do not require every event row to have agent/span ids. Check agent/span ids
-  only for events you emitted inside agent/span contexts.
+- Sailbox exec rows created inside `with voyage.agent(...)` /
+  `with voyage.span(...)` show the expected agent and span.
+- Model calls created through `sail.inference.*` inside an agent/span show the
+  expected agent and span.
+- Top-level lifecycle events such as `voyage.started` may appear outside an
+  agent/span. Check attribution on the events, model calls, and execs emitted
+  from your agent/span code.
 
 ## Reference
 
