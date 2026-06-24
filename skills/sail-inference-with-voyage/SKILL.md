@@ -51,7 +51,7 @@ def draft():
     # Headers attached automatically because a Voyage is active; the call
     # auto-attributes to this agent/span.
     response = sail.inference.responses.create(
-        model="zai-org/GLM-5",
+        model="zai-org/GLM-5.1-FP8",
         input="Summarize this diff in one paragraph: ...",
         background=False,
         timeout=120,
@@ -119,7 +119,7 @@ client = sail.voyage.wrap_openai(
 with sail.voyage.run(name="raw-client", version=1) as voyage:
     with voyage.agent("Reviewer"):
         with voyage.span("call"):
-            response = client.responses.create(model="zai-org/GLM-5", input="...")
+            response = client.responses.create(model="zai-org/GLM-5.1-FP8", input="...")
 ```
 
 `wrap_openai` wraps `responses.create`, `responses.retrieve`, and

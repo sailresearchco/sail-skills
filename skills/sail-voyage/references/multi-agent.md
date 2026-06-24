@@ -87,7 +87,7 @@ def run_checks():
 @sail.span("draft-comments")
 def review():
     response = sail.inference.responses.create(
-        model="zai-org/GLM-5",
+        model="zai-org/GLM-5.1-FP8",
         input="Review the diff in /tmp/repo and write a one-paragraph summary.",
         background=False,
         timeout=120,

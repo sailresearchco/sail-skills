@@ -36,9 +36,6 @@ appear at the env-qualified dashboard URL, for example
 
 **Most likely causes:**
 
-- **Wrong env.** `SAIL_MODE` defaults to `prod` in the SDK. If your key is a
-  dev or staging key, set `SAIL_MODE=dev` or `SAIL_MODE=staging` explicitly.
-  Check the script's env or `os.environ.get("SAIL_MODE")` at runtime.
 - **Wrong org.** The dashboard scopes to your active Clerk org. If the
   API key belongs to a different org, the Voyage is invisible to your
   current login.
@@ -62,7 +59,7 @@ print("dashboard_url =", sail.voyage.dashboard_url())
 
 If `voyage_id` is None at the top of your script, the SDK degraded to a
 no-op Voyage (and warned why on stderr).
-Check `SAIL_MODE`, `SAIL_API_KEY`, and try a single `/v1/models` curl
+Check `SAIL_API_KEY`, and try a single `/v1/models` curl
 against the API endpoint to confirm the key works there.
 
 ## 2. Voyage exists but Overview says "no events"
@@ -171,7 +168,7 @@ client = sail.voyage.wrap_openai(
 
 with voyage.agent("Analyst"):
     with voyage.span("score"):
-        response = client.responses.create(model="zai-org/GLM-5", input="...")
+        response = client.responses.create(model="zai-org/GLM-5.1-FP8", input="...")
 ```
 
   For a non-OpenAI-style client, pass `extra_headers=sail.voyage.headers()`
@@ -214,7 +211,7 @@ except Exception as exc:
 badge), or Waterfall bars with diagonal striping, that your code never
 declared.
 
-**This is expected:** those are auto-spans (ADR-025/026) — the SDK
+**This is expected:** those are auto-spans — the SDK
 synthesizes a span around any Sail inference call or Sailbox exec made with
 no active span, named after your calling function when derivable. They mean
 your work was captured and scoped even where you declared nothing. They are

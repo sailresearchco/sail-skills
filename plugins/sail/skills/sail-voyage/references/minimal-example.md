@@ -9,7 +9,7 @@ Sailbox, then have a model write a one-line takeaway). **Copy the shape, not the
 task** — swap the guest work and the prompt for your real workflow.
 
 Requires `SAIL_API_KEY` in the environment (create one at
-<https://app.sailresearch.com/api-keys>; `SAIL_MODE` defaults to `prod`).
+<https://app.sailresearch.com/api-keys>).
 
 ```python
 """Minimal Sail Voyage example — copy the shape, not the task."""
@@ -50,8 +50,8 @@ def main() -> None:
         # third-party packages (this example uses stdlib only).
         image=sail.Image.debian_arm64.build(),
         name="voyage-example",
-        cpu=1,
-        memory_mib=1024,
+        max_cpu=1,
+        max_memory_mib=1024,
     )
 
     # Each agent is a function with @sail.agent on it. Declare spans inside —
@@ -82,7 +82,7 @@ def main() -> None:
     def analyst(top) -> None:
         # One scoped Sail inference call → model-call row, auto-attributed here.
         response = sail.inference.responses.create(
-            model="zai-org/GLM-5",
+            model="zai-org/GLM-5.1-FP8",
             input=f"In one sentence, describe these word counts: {top}",
             background=False,
             timeout=120,
