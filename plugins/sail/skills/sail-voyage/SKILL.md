@@ -147,7 +147,7 @@ def research():
     # The inference call auto-attributes to this agent/span (Level 1/2) —
     # no inline with-block needed.
     response = sail.inference.responses.create(
-        model="zai-org/GLM-5",
+        model="zai-org/GLM-5.1-FP8",
         input="Collect a concise source map for the topic.",
         background=False,
         timeout=120,
@@ -329,7 +329,7 @@ the dashboard shows scoped model rows under the right owner.
 with voyage.agent("Analyst", role="analyst"):
     with voyage.span("compare evidence"):
         response = sail.inference.responses.create(
-            model="zai-org/GLM-5",
+            model="zai-org/GLM-5.1-FP8",
             input="Compare the collected claims and identify contradictions.",
             background=False,
             timeout=120,

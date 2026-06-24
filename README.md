@@ -62,7 +62,7 @@ relative path) or download this repository as a ZIP.
 2. `export SAIL_API_KEY=sk_...` in the environment your agent runs in (the SDK
    reads the environment directly). Do not substitute `sail auth login` for SDK
    agents yet; that CLI state is not read by plain Python processes.
-3. The Python SDK: `pip install "sail-sdk>=0.2.1"` — the current examples need 0.2.1+.
+3. The Python SDK: `pip install "sail-sdk>=0.2.2"` — the current examples need 0.2.2+.
 
 ## Quick start
 
