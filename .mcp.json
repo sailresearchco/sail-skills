@@ -1,0 +1,17 @@
+{
+  "mcpServers": {
+    "sail-delegate": {
+      "command": "uvx",
+      "args": [
+        "--python",
+        ">=3.10",
+        "--from",
+        "sail[mcp]",
+        "python",
+        "-I",
+        "-m",
+        "sail.mcp"
+      ]
+    }
+  }
+}

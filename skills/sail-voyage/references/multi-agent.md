@@ -53,7 +53,7 @@ and roles stable across runs of a series.
 import sail
 
 # One long-lived Sailbox, shared by all three agents below. A real review
-# service reconnects to a kept-warm box (`Sailbox.connect`) and reuses it across
+# service reconnects to a kept-warm box (`Sailbox.get`) and reuses it across
 # PRs rather than creating one per run.
 sb = sail.Sailbox.create(
     app=sail.App.find(name="my-review-app", mint_if_missing=True),

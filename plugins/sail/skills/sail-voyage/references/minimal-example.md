@@ -50,8 +50,7 @@ def main() -> None:
         # third-party packages (this example uses stdlib only).
         image=sail.Image.debian_arm64.build(),
         name="voyage-example",
-        max_cpu=1,
-        max_memory_mib=1024,
+        size="s",
     )
 
     # Each agent is a function with @sail.agent on it. Declare spans inside —
