@@ -5,7 +5,7 @@ Voyage trace; work run elsewhere is invisible to the dashboard.
 
 **A Sailbox is long-lived compute, not a per-call sandbox.** Create one box for
 the task (or reconnect to an existing one with
-`sail.Sailbox.connect(sailbox_id)`), keep it running across every step, and bind
+`sail.Sailbox.get(sailbox_id)`), keep it running across every step, and bind
 it to the Voyage once with `sail.voyage.run(..., sailbox_id=sb.sailbox_id)`. Run
 many execs against that single box. When it is idle between bursts, `sb.pause()`
 or `sb.sleep()` (state is checkpointed) and `sb.resume()` later; call
@@ -31,12 +31,12 @@ with voyage.agent("Executor", role="executor"):
             "validation.command.completed",
             payload={
                 "exec_request_id": req.exec_request_id,
-                "returncode": result.returncode,
+                "exit_code": result.exit_code,
                 "stdout_tail": redact_tail(result.stdout),
                 "stderr_tail": redact_tail(result.stderr),
             },
         )
-        if result.returncode != 0:
+        if result.exit_code != 0:
             raise RuntimeError("validation command failed")
 ```
 

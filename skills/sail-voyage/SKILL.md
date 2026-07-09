@@ -470,7 +470,7 @@ Then confirm in the dashboard:
 
 - Creating one Voyage per subagent. Use agents inside one Voyage instead.
 - Spinning up a Sailbox per exec/function/step. Use one long-lived box per task
-  (`Sailbox.connect` to reuse, `pause`/`sleep` when idle); terminate only when
+  (`Sailbox.get` to reuse, `pause`/`sleep` when idle); terminate only when
   done.
 - Encoding input-specific data in `name`; use `metadata`.
 - Bumping `version` for every run.

@@ -1,8 +1,8 @@
 {
   "name": "sail",
   "displayName": "Sail",
-  "description": "Build, instrument, and debug Sail Voyage observability flows with series history, Sail inference attribution, and Sailbox execution evidence. Public v1 ships Voyage skills; broader Sail skills belong in this namespace over time.",
-  "version": "0.2.4",
+  "description": "Build, instrument, and debug Sail Voyage observability flows with series history, Sail inference attribution, and Sailbox execution evidence — plus the sail-delegate MCP server and fanout policy for offloading heavy coding/analysis work to GLM workers on Sail.",
+  "version": "0.2.7",
   "author": {
     "name": "Sail Research"
   },

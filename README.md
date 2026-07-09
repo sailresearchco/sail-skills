@@ -9,10 +9,13 @@ sandbox command attributed to the right step, rendered in the
 These skills follow the open [Agent Skills](https://agentskills.io) standard:
 plain `SKILL.md` folders, packaged as installable plugins for both **Claude
 Code** and **Codex**. Other Agent Skills-compatible tools can use the same
-skill folders where they support importing standard skills. The package
-contains **no hooks, scripts, MCP servers, or Codex app connector** — markdown
-only. Installing the plugin does not require a Sail API key; set `SAIL_API_KEY`
-only when running code that calls Sail services.
+skill folders where they support importing standard skills. Alongside the
+markdown skills the plugin bundles a single MCP server declaration
+(`.mcp.json`) that launches the published `sail[mcp]` package from PyPI via
+`uvx` — the `sail-delegate` delegation server (see below). There are no hooks,
+scripts, or Codex app connector, and nothing executes at install time.
+Installing the plugin does not require a Sail API key; provision one only when
+you actually delegate work or run code that calls Sail services.
 
 ## What's included
 
@@ -21,6 +24,23 @@ only when running code that calls Sail services.
 | `sail-voyage` | Build or instrument any Voyage — the entrypoint. Series/version naming, agents, spans, events, Sailbox exec attribution, artifact retrieval, terminal lifecycle. Includes a minimal runnable example. |
 | `sail-inference-with-voyage` | Attribute Sail inference model calls to the active agent/span (header propagation, background vs sync, raw-client fallback). |
 | `sail-voyage-debugging` | A Voyage already ran but renders wrong in the dashboard — symptom → cause → fix. |
+| `sail-fanout-policy` | Delegate or offload heavy coding/analysis to GLM workers on Sail via the `sail_delegate` and `sail_fanout` MCP tools — when to hand off vs. do it yourself, how to fan out independent subtasks, and how to review and apply the diffs workers return. |
+
+## Delegating work to Sail workers
+
+Installed in **Claude Code**, this plugin also adds the `sail-delegate` MCP
+server: two tools, `sail_delegate` and `sail_fanout`, that hand a
+self-contained coding or analysis task to a GLM worker running on Sail. Each
+worker operates in an isolated copy of your project and returns a summary plus
+a reviewable unified diff — your own conversation stays on your Claude plan
+while the heavy token spend runs on your Sail account, and the two credentials
+never mix. The `sail-fanout-policy` skill coaches the model on when and how to
+delegate.
+
+The server launches via `uvx`, so it needs [`uv`](https://docs.astral.sh/uv/)
+installed and a Sail key (`sail auth login` or `SAIL_API_KEY`). See the
+[delegation guide](https://docs.sailresearch.com/claude-code-delegation) for
+setup, a first-run walkthrough, and troubleshooting.
 
 ## Install
 
@@ -59,10 +79,13 @@ relative path) or download this repository as a ZIP.
 
 1. A Sail account and an org API key — create one at
    <https://app.sailresearch.com/api-keys>.
-2. `export SAIL_API_KEY=sk_...` in the environment your agent runs in (the SDK
-   reads the environment directly). Do not substitute `sail auth login` for SDK
-   agents yet; that CLI state is not read by plain Python processes.
-3. The Python SDK: `pip install "sail-sdk>=0.2.2"` — the current examples need 0.2.2+.
+2. Provision the key one of two ways: `export SAIL_API_KEY=sk_...` in the
+   environment your agent runs in, or run `sail auth login` (it stores the key
+   under `~/.sail`, which the SDK reads the same way). `sail auth login` is the
+   desktop-safe option — Dock-launched apps never inherit a shell's exported
+   variables.
+3. The Python SDK: `pip install sail` (use `pip install 'sail[mcp]'` for the
+   `sail-delegate` delegation server).
 
 ## Quick start
 

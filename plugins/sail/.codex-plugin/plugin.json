@@ -1,7 +1,7 @@
 {
   "name": "sail",
-  "version": "0.2.4",
-  "description": "Build, instrument, and debug Sail Voyage observability flows with series history, Sail inference attribution, and Sailbox execution evidence. Public v1 ships Voyage skills; broader Sail skills belong in this namespace over time.",
+  "version": "0.2.7",
+  "description": "Build, instrument, and debug Sail Voyage observability flows with series history, Sail inference attribution, and Sailbox execution evidence \u2014 plus the sail-delegate MCP server and fanout policy for offloading heavy coding/analysis work to GLM workers on Sail.",
   "author": {
     "name": "Sail Research",
     "url": "https://sailresearch.com"
@@ -21,7 +21,7 @@
   "interface": {
     "displayName": "Sail",
     "shortDescription": "Observable background agents on Sail",
-    "longDescription": "Build, instrument, and debug Sail Voyage observability flows with series history, Sail inference attribution, and Sailbox execution evidence. Public v1 ships Voyage skills; broader Sail skills belong in this namespace over time.",
+    "longDescription": "Build, instrument, and debug Sail Voyage observability flows with series history, Sail inference attribution, and Sailbox execution evidence \u2014 plus the sail-delegate MCP server and fanout policy for offloading heavy coding/analysis work to GLM workers on Sail.",
     "developerName": "Sail Research",
     "category": "Developer Tools",
     "websiteURL": "https://sailresearch.com"
