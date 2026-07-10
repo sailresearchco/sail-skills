@@ -1,6 +1,6 @@
 {
   "name": "sail",
-  "version": "0.2.7",
+  "version": "0.2.8",
   "description": "Build, instrument, and debug Sail Voyage observability flows with series history, Sail inference attribution, and Sailbox execution evidence \u2014 plus the sail-delegate MCP server and fanout policy for offloading heavy coding/analysis work to GLM workers on Sail.",
   "author": {
     "name": "Sail Research",

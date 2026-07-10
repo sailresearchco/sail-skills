@@ -24,7 +24,7 @@ you actually delegate work or run code that calls Sail services.
 | `sail-voyage` | Build or instrument any Voyage — the entrypoint. Series/version naming, agents, spans, events, Sailbox exec attribution, artifact retrieval, terminal lifecycle. Includes a minimal runnable example. |
 | `sail-inference-with-voyage` | Attribute Sail inference model calls to the active agent/span (header propagation, background vs sync, raw-client fallback). |
 | `sail-voyage-debugging` | A Voyage already ran but renders wrong in the dashboard — symptom → cause → fix. |
-| `sail-fanout-policy` | Delegate or offload heavy coding/analysis to GLM workers on Sail via the `sail_delegate` and `sail_fanout` MCP tools — when to hand off vs. do it yourself, how to fan out independent subtasks, and how to review and apply the diffs workers return. |
+| `sail-fanout-policy` | Delegate or offload heavy coding/analysis to GLM workers on Sail via the `sail_delegate` and `sail_fanout` MCP tools — when to hand off vs. do it yourself, delegating autonomously under a standing preference, how to fan out independent subtasks, and how to apply the diffs workers return. |
 
 ## Delegating work to Sail workers
 
@@ -32,10 +32,12 @@ Installed in **Claude Code**, this plugin also adds the `sail-delegate` MCP
 server: two tools, `sail_delegate` and `sail_fanout`, that hand a
 self-contained coding or analysis task to a GLM worker running on Sail. Each
 worker operates in an isolated copy of your project and returns a summary plus
-a reviewable unified diff — your own conversation stays on your Claude plan
-while the heavy token spend runs on your Sail account, and the two credentials
-never mix. The `sail-fanout-policy` skill coaches the model on when and how to
-delegate.
+a unified diff, which Claude checks and applies for you (ask to review diffs
+first if you prefer) — your own conversation stays on your Claude plan while
+the heavy token spend runs on your Sail account, and the two credentials never
+mix. Tell Claude once to "delegate heavy work to Sail workers where
+appropriate" and the `sail-fanout-policy` skill coaches it to do so
+autonomously.
 
 The server launches via `uvx`, so it needs [`uv`](https://docs.astral.sh/uv/)
 installed and a Sail key (`sail auth login` or `SAIL_API_KEY`). See the
