@@ -1,8 +1,8 @@
 {
   "name": "sail",
   "displayName": "Sail",
-  "description": "Build, instrument, and debug Sail Voyage observability flows with series history, Sail inference attribution, and Sailbox execution evidence — plus the sail-delegate MCP server and fanout policy for offloading heavy coding/analysis work to GLM workers on Sail.",
-  "version": "0.2.8",
+  "description": "Build observable agents on Sail, allocate preemptible GPU compute with checkpoint recovery, and delegate heavy coding or analysis to Sail workers.",
+  "version": "0.2.13",
   "author": {
     "name": "Sail Research"
   },
@@ -14,6 +14,7 @@
     "agent-skills",
     "claude-code",
     "sailbox",
-    "inference"
+    "inference",
+    "gpu"
   ]
 }

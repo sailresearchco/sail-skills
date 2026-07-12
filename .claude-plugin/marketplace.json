@@ -1,6 +1,6 @@
 {
   "name": "sail",
-  "description": "Official Sail skills: build observable background agents with Voyage tracing, Sail inference attribution, and Sailbox execution evidence.",
+  "description": "Official Sail skills for observable agents, preemptible GPU compute, and delegated work on Sail.",
   "owner": {
     "name": "Sail Research",
     "url": "https://sailresearch.com"
@@ -9,7 +9,7 @@
     {
       "name": "sail",
       "source": "./",
-      "description": "Build, instrument, and debug observable background agents on Sail (Voyage tracing, inference attribution, Sailbox execution evidence), and delegate heavy coding/analysis to GLM workers via the bundled sail-delegate MCP server and fanout policy."
+      "description": "Build observable agents, allocate preemptible GPU compute with checkpoint recovery, and delegate heavy coding or analysis to Sail workers."
     }
   ]
 }
