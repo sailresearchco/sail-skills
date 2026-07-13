@@ -8,13 +8,10 @@ checkpointed training job on a dedicated GPU VM.
 These skills follow the open [Agent Skills](https://agentskills.io) standard:
 plain `SKILL.md` folders, packaged as installable plugins for both **Claude
 Code** and **Codex**. Other Agent Skills-compatible tools can use the same
-skill folders where they support importing standard skills. Alongside the
-markdown skills the plugin bundles a single MCP server declaration
-(`.mcp.json`) that launches the published `sail[mcp]` package from PyPI via
-`uvx` — the `sail-delegate` delegation server (see below). There are no hooks,
-scripts, or Codex app connector, and nothing executes at install time.
-Installing the plugin does not require a Sail API key; provision one only when
-you actually delegate work or run code that calls Sail services.
+skill folders where they support importing standard skills. Installing the
+plugin does not require a Sail API key. For delegation setup, usage, and
+troubleshooting, see the
+[Claude Code delegation guide](https://docs.sailresearch.com/claude-code-delegation).
 
 ## What's included
 
@@ -26,24 +23,6 @@ you actually delegate work or run code that calls Sail services.
 | `sail-fanout-policy` | Delegate or offload heavy coding/analysis to GLM workers on Sail via the `sail_delegate` and `sail_fanout` MCP tools — when to hand off vs. do it yourself, delegating autonomously under a standing preference, how to fan out independent subtasks, and how to apply the diffs workers return. |
 | `sail-gpu-marketplace` | Allocate, connect to, and release a preemptible GPU VM, or recover a cooperative checkpointed job after interruption. |
 
-## Delegating work to Sail workers
-
-Installed in **Claude Code**, this plugin also adds the `sail-delegate` MCP
-server: two tools, `sail_delegate` and `sail_fanout`, that hand a
-self-contained coding or analysis task to a GLM worker running on Sail. Each
-worker operates in an isolated copy of your project and returns a summary plus
-a unified diff, which Claude checks and applies for you (ask to review diffs
-first if you prefer) — your own conversation stays on your Claude plan while
-the heavy token spend runs on your Sail account, and the two credentials never
-mix. Tell Claude once to "delegate heavy work to Sail workers where
-appropriate" and the `sail-fanout-policy` skill coaches it to do so
-autonomously.
-
-The server launches via `uvx`, so it needs [`uv`](https://docs.astral.sh/uv/)
-installed and a Sail key (`sail auth login` or `SAIL_API_KEY`). See the
-[delegation guide](https://docs.sailresearch.com/claude-code-delegation) for
-setup, a first-run walkthrough, and troubleshooting.
-
 ## Install
 
 ### Claude Code (plugin)
@@ -54,6 +33,24 @@ setup, a first-run walkthrough, and troubleshooting.
 ```
 
 Skills load automatically when relevant; invoke directly as `/sail:sail-voyage`.
+
+To update an existing installation:
+
+```text
+/plugin marketplace update sail
+/plugin update sail@sail
+/reload-plugins
+```
+
+If Claude still shows an older version, reinstall the plugin and reload:
+
+```text
+/plugin uninstall sail@sail
+/plugin install sail@sail
+/reload-plugins
+```
+
+Restart Claude Code if it prompts you to apply the update.
 
 Or, from a clone, without the marketplace:
 
