@@ -148,6 +148,22 @@ are per-task — handle a failed entry the same way as fanout partial failure
 - `voyage_url` links the delegation's trace in the Sail dashboard for
   inspecting what the worker actually did.
 
+## Interrupted fanouts
+
+Every `sail_fanout` response includes a `delegation_id`. After each task
+returns, Sail checkpoints its terminal result before the whole fanout
+returns. Checkpointed results remain available if the MCP connection closes.
+
+- Call `sail_collect` with no id to list recent fanouts for the current
+  project.
+- Call `sail_collect` with a `delegation_id` to recover completed results and
+  get `unfinished_tasks` for anything that had not finished.
+- Do not present collection as a resume. It never replays unfinished workers
+  or tool calls automatically. If the user still wants the unfinished work,
+  pass those task entries to a new `sail_fanout` call. That is new paid work.
+- Fanout records are project-scoped and retained for 7 days. A single
+  `sail_delegate` call is not persisted.
+
 ## Requirements and limits
 
 - The project must be a git repository with at least one commit (sandboxes
@@ -183,4 +199,8 @@ are per-task — handle a failed entry the same way as fanout partial failure
   from the `/mcp` menu, and inspect it with `claude mcp get sail-delegate`.
 - **"not inside a git repository"**: delegation seeds a git worktree, so the
   project must be a git repo with at least one commit.
+- **A fanout died with `MCP error -32000: Connection closed`**: call
+  `sail_collect` with no id to find the project fanout, then collect its id.
+  Use the recovered results. Retry `unfinished_tasks` only if the user still
+  wants them and understands that they are new work.
 - Full guide: <https://docs.sailresearch.com/claude-code-delegation>.
