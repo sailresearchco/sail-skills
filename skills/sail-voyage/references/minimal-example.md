@@ -1,7 +1,7 @@
 # Minimal Example (reference)
 
 The smallest complete Sail Voyage that still exercises every critical path:
-`run → decorated agent/span → @sail.function exec in the Sailbox → sb.read →
+`run → decorated agent/span → @sail.function exec in the Sailbox → sb.fs.read →
 scoped inference call → run() terminal state → dashboard handoff`.
 
 The task is deliberately trivial (count words in a short string inside the
@@ -65,7 +65,7 @@ def main() -> None:
                 payload={"total": result["total"]},  # bounded, no raw blobs
             )
         with sail.voyage.span("retrieve artifact"):
-            data = sb.read(result["path"])  # pull the guest's file to the host
+            data = sb.fs.read(result["path"])  # pull the guest's file to the host
             sail.voyage.event(
                 "artifact.result.ready",
                 payload={

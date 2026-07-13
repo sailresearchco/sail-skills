@@ -55,7 +55,7 @@ third-party packages, bake them into the image —
 `sail.Image.debian_arm64.pip_install("matplotlib").build()` — rather than
 installing them with a runtime exec, which is slower and adds a failure mode. To
 retrieve an artifact the guest produced (a chart, a report file), read it back
-on the controller with `data = sb.read(path)`, then record a bounded
+on the controller with `data = sb.fs.read(path)`, then record a bounded
 `artifact.*` event (type, path hint, bytes, sha256) — not the bytes themselves.
 See [minimal-example.md](minimal-example.md) for a complete runnable skeleton
 that exercises every path above.
