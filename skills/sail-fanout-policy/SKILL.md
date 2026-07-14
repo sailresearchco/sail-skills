@@ -100,8 +100,10 @@ conversation. Two things make it work reliably:
   synthesis, judgment, and verification layers. One agent driving one
   `sail_fanout` often replaces a whole tier of worker-agents.
 
-A delegation call blocks until the worker finishes (minutes), and failures
-are per-task — handle a failed entry the same way as fanout partial failure
+Use `sail_fanout(wait=false)` for long fanouts. It returns a delegation id
+immediately, so continue useful orchestration and use `sail_collect` to check
+progress instead of holding one tool call open for minutes. Failures are
+per-task: handle a failed entry the same way as fanout partial failure
 (re-delegate or finish it yourself).
 
 ## How to delegate well
@@ -152,17 +154,27 @@ are per-task — handle a failed entry the same way as fanout partial failure
 
 Every `sail_fanout` response includes a `delegation_id`. After each task
 returns, Sail checkpoints its terminal result before the whole fanout
-returns. Checkpointed results remain available if the MCP connection closes.
+returns. The fanout runs separately from the MCP connection, so it continues
+locally if that connection closes.
 
+- Prefer `sail_fanout(wait=false)` for long work. Keep the returned id and use
+  `sail_collect` while you do other useful work. You may set `wait_seconds` on
+  collection to wait up to 60 seconds before it returns the latest state.
 - Call `sail_collect` with no id to list recent fanouts for the current
-  project.
-- Call `sail_collect` with a `delegation_id` to recover completed results and
-  get `unfinished_tasks` for anything that had not finished.
+  project, especially if the launching call closed before returning its id.
+- Call `sail_collect` with a `delegation_id` to read lifecycle, task progress,
+  completed results, and `unfinished_tasks`.
+- If the user asks to stop, call `sail_cancel` with the delegation id. Rejecting
+  or closing a waiting `sail_fanout` tool call alone is not a cancellation
+  signal. Cancellation is cooperative, so a model request or command already
+  in progress may finish first. Collect any results that completed before it.
 - Do not present collection as a resume. It never replays unfinished workers
-  or tool calls automatically. If the user still wants the unfinished work,
-  pass those task entries to a new `sail_fanout` call. That is new paid work.
+  or tool calls automatically. Retry `unfinished_tasks` only from an
+  interrupted run and only if the user still wants them. A retry is new paid
+  work. Do not retry tasks from a cancelled run unless the user reverses the
+  cancellation.
 - Fanout records are project-scoped and retained for 7 days. A single
-  `sail_delegate` call is not persisted.
+  `sail_delegate` call is not persisted or detached.
 
 ## Requirements and limits
 
@@ -199,8 +211,9 @@ returns. Checkpointed results remain available if the MCP connection closes.
   from the `/mcp` menu, and inspect it with `claude mcp get sail-delegate`.
 - **"not inside a git repository"**: delegation seeds a git worktree, so the
   project must be a git repo with at least one commit.
-- **A fanout died with `MCP error -32000: Connection closed`**: call
-  `sail_collect` with no id to find the project fanout, then collect its id.
-  Use the recovered results. Retry `unfinished_tasks` only if the user still
-  wants them and understands that they are new work.
+- **A fanout call ended with `MCP error -32000: Connection closed`**: the
+  fanout may still be running. Call `sail_collect` with no id to find it, then
+  collect its id. Use completed results and keep polling active work. Retry
+  `unfinished_tasks` only after the state is interrupted and only if the user
+  still wants the new paid work.
 - Full guide: <https://docs.sailresearch.com/claude-code-delegation>.
