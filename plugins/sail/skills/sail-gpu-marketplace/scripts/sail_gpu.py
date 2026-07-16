@@ -318,7 +318,10 @@ def ssh_base_command(
 
 
 def remote_shell_command(command: str) -> str:
-    return "bash -lc " + shlex.quote(command)
+    # A login shell runs ~/.bash_logout after the command. The stock Ubuntu
+    # clear_console hook can fail over non-console SSH and replace an explicit
+    # successful exit status, so remote jobs must use a non-login shell.
+    return "bash -c " + shlex.quote(command)
 
 
 def run_remote(

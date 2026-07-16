@@ -104,16 +104,18 @@ chip. Explicit agents/spans always win — synthesis only covers what you
 didn't declare. Kill switch: `SAIL_VOYAGE_AUTO_SPANS=0`. Underscore-prefixed
 top-level payload keys are reserved for the SDK.
 
-Use module-level `sail.voyage.*` helpers for the process-global current Voyage,
-or keep the returned `voyage` object when multiple handles are present. The
-SDK's contract is one current Voyage per process: the last `create()`/
-`attach()` wins for module-level helpers. A process juggling several Voyages
-concurrently must route everything through the handles: use
-`voyage.event(...)`/`voyage.span(...)` for telemetry AND pass `voyage=` to
-every `sail.inference.*` call (the wrappers default to the process-global
-current Voyage, not the handle whose span you are inside). `Sailbox.exec()`
-attribution always follows the process-global current Voyage and cannot take
-a handle — do not run execs for a non-current Voyage; serialize them or
+Use module-level `sail.voyage.*` helpers for the current Voyage, or keep the
+returned `voyage` object when multiple handles are present. The current
+Voyage is context-local (Python `contextvars`) with a process-wide fallback:
+concurrent tasks that each `create()`/`attach()` their own Voyage keep their
+own attribution for module-level helpers and `sail.inference.*` wrappers,
+while a context that never started one uses the process's most recently
+started Voyage. When one context juggles several Voyages, route everything
+through the handles: use `voyage.event(...)`/`voyage.span(...)` for telemetry
+AND pass `voyage=` to every `sail.inference.*` call (the wrappers default to
+the current Voyage, not the handle whose span you are inside).
+`Sailbox.exec()` attribution follows the current Voyage and cannot take a
+handle — do not run execs for a non-current Voyage; serialize them or
 accept attribution to whichever Voyage is current. If the
 task controls a Sailbox, bind it: `sail.voyage.run(..., sailbox_id=sb.sailbox_id)` (or `create(...)`).
 
