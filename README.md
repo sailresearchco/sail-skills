@@ -1,9 +1,10 @@
 # Sail Skills
 
-Agent Skills for building **observable background agents** and allocating
-preemptible GPU compute on [Sail](https://sailresearch.com). Instrument an
-agent run as a **Voyage**, delegate heavy work to Sail workers, or run a
-checkpointed training job on a dedicated GPU VM.
+Agent Skills for migrating existing apps to [Sail](https://sailresearch.com),
+building **observable background agents**, and allocating preemptible GPU
+compute. Move inference and sandbox execution to Sail, instrument an agent run
+as a **Voyage**, delegate heavy work to Sail workers, or run a checkpointed
+training job on a dedicated GPU VM.
 
 These skills follow the open [Agent Skills](https://agentskills.io) standard:
 plain `SKILL.md` folders, packaged as installable plugins for both **Claude
@@ -17,6 +18,7 @@ troubleshooting, see the
 
 | Skill | Use it when |
 | --- | --- |
+| `sail-migrate` | Migrate an existing app's inference or third-party sandbox execution to Sail while preserving behavior, optionally compare before/after runs, and move compatible background harnesses into a Sailbox. |
 | `sail-voyage` | Build or instrument any Voyage — the entrypoint. Series/version naming, agents, spans, events, Sailbox exec attribution, artifact retrieval, terminal lifecycle. Includes a minimal runnable example. |
 | `sail-inference-with-voyage` | Attribute Sail inference model calls to the active agent/span (header propagation, background vs sync, raw-client fallback). |
 | `sail-voyage-debugging` | A Voyage already ran but renders wrong in the dashboard — symptom → cause → fix. |
@@ -88,7 +90,16 @@ relative path) or download this repository as a ZIP.
 
 ## Quick start
 
-Ask your agent:
+To migrate an existing app, ask your agent:
+
+> Migrate this app's inference and sandbox execution to Sail.
+
+The `sail-migrate` skill inventories both kinds of call site, selects models
+and completion windows, preserves existing behavior, and can compare the same
+fixed input before and after the migration. For compatible background work, it
+also recommends running the harness itself inside a Sailbox.
+
+To build a new observable background agent, ask:
 
 > Build a small background research agent on Sail and make the whole run show
 > up as a trace I can open in the dashboard — each step, the model calls it

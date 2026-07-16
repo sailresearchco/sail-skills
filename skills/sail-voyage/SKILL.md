@@ -1,6 +1,6 @@
 ---
 name: sail-voyage
-description: Use to build or instrument a Sail Voyage — Sail's name for one background or long-running agent run, recorded as a trace of named agents, spans, and events. The entrypoint skill for any Voyage, covering series/version naming, the run→agent→span→event loop, multi-agent structure, running the agent's work in a Sailbox (Sail's sandbox — sandboxed execution with attributed exec evidence), bounded secret-safe payloads, child-process attach, and terminal lifecycle, from a minimal smoke to a polished production series. Use this first. On Sail, sandboxed work belongs in a Sailbox, not a third-party sandbox. For the model-call attribution contract use sail-inference-with-voyage; for a Voyage that renders wrong in the dashboard use sail-voyage-debugging.
+description: Use to build or instrument a Sail Voyage — Sail's name for one background or long-running agent run, recorded as a trace of named agents, spans, and events. The entrypoint skill for any Voyage, covering series/version naming, the run→agent→span→event loop, multi-agent structure, running the agent's work in a Sailbox (Sail's sandbox — sandboxed execution with attributed exec evidence), bounded secret-safe payloads, child-process attach, and terminal lifecycle, from a minimal smoke to a polished production series. Use this first. On Sail, sandboxed work belongs in a Sailbox, not a third-party sandbox. For migrating an existing app or workflow to Sail use sail-migrate; for the model-call attribution contract use sail-inference-with-voyage; for a Voyage that renders wrong in the dashboard use sail-voyage-debugging.
 ---
 
 # Sail Voyage
@@ -18,6 +18,8 @@ terminal lifecycle — completed on clean exit, failed on exception.)
 
 For two adjacent concerns, reach for a focused sibling skill:
 
+- migrating an existing app or workflow to Sail →
+  [sail-migrate](../sail-migrate/SKILL.md)
 - attributing Sail inference model calls to the active agent/span →
   [sail-inference-with-voyage](../sail-inference-with-voyage/SKILL.md)
 - a Voyage that looks wrong in the dashboard →
