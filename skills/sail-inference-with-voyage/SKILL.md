@@ -126,7 +126,7 @@ with sail.voyage.run(name="raw-client", version=1) as voyage:
 `chat.completions.create` in place — every holder of that client object
 sees attributed calls, so wrap a dedicated client if some callers must stay
 unattributed. It is idempotent, supports `AsyncOpenAI` (the auto-span
-covers the awaited request), and follows the process-global current Voyage
+covers the awaited request), and follows the current Voyage
 per call (pass `voyage=` to pin one).
 
 For any non-OpenAI-style HTTP client, attach

@@ -116,7 +116,11 @@ per-task: handle a failed entry the same way as fanout partial failure
 3. **Pick the mode.** `write=true` (default) lets the worker edit and run
    builds/tests in its sandbox and returns a diff. `write=false` is
    read-only analysis — cheaper and safer for pure research.
-4. **Fan out independent tasks only.** Each `sail_fanout` task gets its own
+4. **Keep the ordinary turn budget.** Workers default to 24 model turns.
+   Leave `max_turns` at that default unless a clearly larger task needs more
+   room; the bounded override accepts 1–48. A `sail_fanout` override applies
+   to every task in the call.
+5. **Fan out independent tasks only.** Each `sail_fanout` task gets its own
    sandbox copy; workers cannot see each other's edits. If task B needs task
    A's changes, run them sequentially instead.
 
@@ -132,6 +136,11 @@ per-task: handle a failed entry the same way as fanout partial failure
   the user asked to review worker output first, or the change is risky or
   hard to reverse (deletions, migrations, wide refactors). This is the opt-in
   safety valve for applying, not the default flow.
+- **Never apply an incomplete result as finished work.** A result with
+  `status: "incomplete"` and `stop_reason: "max_turns"` reached its turn cap.
+  Its diff is partial and may not be verified. Review it, then finish the work
+  yourself or retry it explicitly. Do not report the original task complete
+  until the combined result is verified.
 - **Diff review is not the mitigation for an untrusted repository** — that is
   a `write=false` decision made *before* delegating, not a review done after.
   A `write=true` worker runs the repository's own build/test code with your OS
@@ -142,9 +151,9 @@ per-task: handle a failed entry the same way as fanout partial failure
   any `write=true` delegation.
 - A `diff` starting with `base64:` means the patch contains non-UTF-8 bytes:
   strip the prefix, base64-decode to a file, then `git apply` that file.
-- Fanout results are per-task: some entries may carry an `error` while
-  others succeeded. Handle partial success — re-delegate or finish failed
-  tasks yourself.
+- Fanout results are per-task. A terminal fanout reports `partial` when some
+  entries carry an `error` or are `incomplete`. Keep successful results, then
+  re-delegate or finish only the failed or incomplete tasks yourself.
 - If a diff conflicts with edits you made while the worker ran, prefer your
   tree and re-delegate the remainder with updated context.
 - `voyage_url` links the delegation's trace in the Sail dashboard for
