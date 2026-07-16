@@ -2,7 +2,7 @@
   "name": "sail",
   "displayName": "Sail",
   "description": "Build observable agents on Sail, allocate preemptible GPU compute with checkpoint recovery, and delegate heavy coding or analysis to Sail workers.",
-  "version": "0.2.19",
+  "version": "0.2.20",
   "author": {
     "name": "Sail Research"
   },
