@@ -128,9 +128,11 @@ client = OpenAI(
     api_key=os.environ["SAIL_API_KEY"],
 )
 
+existing_metadata = {}  # reuse the metadata this call site already sends
+
 response = client.responses.create(
     model="<model chosen in step 3>",
-    metadata={"completion_window": "standard"},
+    metadata={**existing_metadata, "completion_window": "standard"},
     input=...,  # unchanged
 )
 ```
@@ -147,6 +149,8 @@ response = client.responses.create(
   comment, and note the cast in the report.
 - Read `SAIL_API_KEY` from the environment.
 - Set the model and `metadata.completion_window` selected in steps 3 and 4.
+  Preserve every metadata entry the call site already sends; add
+  `completion_window` to that object instead of replacing it.
 - Use `background=True` for `flex` and very long-running Responses requests.
   Poll the returned response ID. Background requests cannot stream.
 - Keep the request shape already in use. Do not rewrite Chat Completions to
@@ -207,22 +211,27 @@ import sail
 app = sail.App.find(name="my-agent", mint_if_missing=True)
 sb = sail.Sailbox.create(app=app, name="worker-1")
 
-result = sb.run("python3 run_task.py", cwd="/workspace", timeout=600)
-print(result.exit_code, result.stdout)
-
-sb.terminate()
+try:
+    result = sb.run("python3 run_task.py", cwd="/workspace", timeout=600)
+    print(result.exit_code, result.stdout)
+finally:
+    sb.terminate()
 ```
 
 Preserve the old sandbox's semantics while adapting its lifecycle:
 
-- Treat a Sailbox as long-lived task compute, not a per-command sandbox. If
-  the old code created a sandbox for each command, create one Sailbox per
-  task and run many commands in it. A fresh environment per task is fine when
-  the old behavior relied on that isolation.
+- Treat a Sailbox as long-lived task compute, not accidentally as a
+  per-command sandbox. If the old code created a sandbox for each command but
+  did not depend on a clean environment, create one Sailbox per task and run
+  many commands in it. Preserve one fresh Sailbox per command when the old
+  behavior intentionally reset filesystem, process, or secret state between
+  commands.
 - Bake dependencies into a custom image instead of installing them with
   runtime commands on every Sailbox.
-- Set an explicit timeout on every `run` or `exec`. Check `exit_code`, or pass
-  `check=True`, because a nonzero exit does not raise by default.
+- Set an explicit timeout on each finite `run` or `exec`. Omit the exec
+  timeout for an intentionally persistent worker because reaching it kills
+  the command. Check `exit_code`, or pass `check=True`, because a nonzero exit
+  does not raise by default.
 - Pass secrets through the `env=` mapping on `run` or `exec`. Never
   interpolate them into shell strings, include them in images, or write them
   into committed files.
@@ -293,7 +302,8 @@ of the migration itself.
 - Do not stash, reset, or overwrite unrelated user changes.
 - Do not create a duplicated source tree for comparison. The git history is
   the old version.
-- Do not create a Sailbox per command.
+- Do not create a Sailbox per command unless that preserves intentional clean
+  per-command isolation from the old workload.
 - Do not add Voyage instrumentation beyond recommending `sail-voyage`.
 - Do not overstate verification. Label each check by what it actually
   exercised.
