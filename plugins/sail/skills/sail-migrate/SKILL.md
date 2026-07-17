@@ -34,7 +34,9 @@ the baseline migration on it.
   - Docs MCP server: <https://docs.sailresearch.com/mcp>
 - Work on a branch and record the pre-migration commit before editing. Never
   stash, reset, or overwrite unrelated uncommitted changes. If the tree is
-  dirty, tell the user and let them decide how to proceed.
+  dirty, tell the user and let them decide how to proceed. If a branch cannot
+  be created, record the pre-migration commit, continue in the working tree,
+  and state the deviation in the report.
 - Never hardcode an API key, paste a literal key into code, or ask the user to
   paste a key to you. Read `SAIL_API_KEY` from the environment. The user can
   create a key at <https://app.sailresearch.com/api-keys> and export it in
@@ -44,9 +46,9 @@ the baseline migration on it.
 - Get approval before paid external calls. Baseline, comparison, and smoke
   requests cost real money on someone's account.
 
-## Step 1: Inventory every inference call site
+## Step 1: Inventory every call site
 
-Before editing, survey the project for:
+Before editing, survey the project for inference call sites:
 
 - OpenAI or Anthropic SDK clients and compatible wrappers
 - raw HTTP calls
@@ -54,15 +56,15 @@ Before editing, survey the project for:
 - environment variables and configuration templates
 - README and deployment documentation
 
+For each inference call site, record the API shape (Responses, Chat
+Completions, or Messages), provider, model, and features in use: streaming,
+tool calls, structured outputs, images, response chaining, background
+execution, and caching.
+
 Also inventory sandbox call sites that create sandboxes, execute commands,
 transfer files, expose ports, or manage lifecycle. For each one, record the
 provider, whether the environment is per-command or long-lived, the image or
 dependencies it needs, and the state that must survive between commands.
-
-For each call site, record the API shape (Responses, Chat Completions, or
-Messages), provider, model, and features in use: streaming, tool calls,
-structured outputs, images, response chaining, background execution, and
-caching.
 
 Check every feature against <https://docs.sailresearch.com/support>. Two gaps
 commonly change code shape:
@@ -138,7 +140,10 @@ response = client.responses.create(
 - For the Anthropic SDK, use the bare host `https://api.sailresearch.com`.
   The SDK appends `/v1/messages`, so a `/v1` base URL incorrectly resolves to
   `/v1/v1/messages`. Pass `SAIL_API_KEY` as `auth_token`, not `api_key`, so
-  the SDK sends the supported bearer authorization header.
+  the SDK sends the supported bearer authorization header. The TypeScript
+  SDK's `metadata` type does not include Sail's `completion_window` extension;
+  cast only the `metadata` field, with a comment, and note the cast in the
+  report.
 - Read `SAIL_API_KEY` from the environment.
 - Set the model and `metadata.completion_window` selected in steps 3 and 4.
 - Use `background=True` for `flex` and very long-running Responses requests.
@@ -174,6 +179,12 @@ message = client.messages.create(
 
 Install the Sail SDK (`pip install sail`, `npm install @sailresearch/sdk`, or
 `cargo add sail-rs`). It reads the same `SAIL_API_KEY` used for inference.
+The SDK is versioned independently of this skill: never copy a version
+number from this skill, its plugin, or its install path into a dependency
+pin. Add the dependency unpinned like its neighbors, or pin the version the
+package registry actually resolves. If an already-installed `sail` package
+predates the surface documented at
+<https://docs.sailresearch.com/sailbox-sdk>, upgrade it from the registry.
 Each Sailbox belongs to an app, which is a named grouping. Resolve the app
 once with `mint_if_missing`.
 
@@ -234,17 +245,24 @@ workload fits.
 ## Step 8: Verify
 
 1. Run the project's tests.
-2. With approval and a configured `SAIL_API_KEY`, make one real request
+2. For typed or compiled languages, also run the typechecker or build,
+   installing dev dependencies if permitted. If that is impossible, list
+   typechecking as an untested path in the report.
+3. With approval and a configured `SAIL_API_KEY`, make one real request
    through the migrated inference configuration. If the sandbox leg exists,
    run one real Sailbox command and clean up any Sailbox created by the smoke.
-3. If no key is configured, walk the user through creating one and exporting
+4. If no key is configured, walk the user through creating one and exporting
    it in their own shell. Do not ask them to paste it to you.
-4. If the user opted into the comparison, run the migrated branch on the same
+5. If the user opted into the comparison, run the migrated branch on the same
    fixed input as the step 2 baseline. Follow
    [references/comparison-run.md](references/comparison-run.md) when
    comparing functionality, latency, tokens, and approximate cost.
-5. If the user moved the harness, run the same fixed input inside the Sailbox
+6. If the user moved the harness, run the same fixed input inside the Sailbox
    and confirm that only the controller's location changed.
+
+Describe every check by what it actually executed. A source-level assertion
+is a source contract check; do not call it a mocked or runtime test, and
+never state or imply that inference or Sailbox behavior ran when it did not.
 
 ## Step 9: Write the migration report
 
@@ -276,3 +294,5 @@ of the migration itself.
   the old version.
 - Do not create a Sailbox per command.
 - Do not add Voyage instrumentation beyond recommending `sail-voyage`.
+- Do not overstate verification. Label each check by what it actually
+  exercised.
