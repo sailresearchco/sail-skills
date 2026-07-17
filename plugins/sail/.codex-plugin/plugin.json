@@ -1,7 +1,7 @@
 {
   "name": "sail",
-  "version": "0.2.25",
-  "description": "Migrate inference, sandbox execution, and agent harnesses to Sail; build observable agents; allocate preemptible GPU compute; and delegate heavy coding or analysis to Sail workers.",
+  "version": "0.2.26",
+  "description": "Migrate inference, sandbox execution, and agent harnesses to Sail; build observable agents; allocate preemptible GPU compute; and, in Claude Code, delegate heavy coding or analysis to Sail workers.",
   "author": {
     "name": "Sail Research",
     "url": "https://sailresearch.com"
@@ -23,7 +23,7 @@
   "interface": {
     "displayName": "Sail",
     "shortDescription": "Observable background agents on Sail",
-    "longDescription": "Migrate inference, sandbox execution, and agent harnesses to Sail; build observable agents; allocate preemptible GPU compute; and delegate heavy coding or analysis to Sail workers.",
+    "longDescription": "Migrate inference, sandbox execution, and agent harnesses to Sail; build observable agents; allocate preemptible GPU compute; and, in Claude Code, delegate heavy coding or analysis to Sail workers.",
     "developerName": "Sail Research",
     "category": "Developer Tools",
     "websiteURL": "https://sailresearch.com"
