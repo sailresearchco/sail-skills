@@ -9,7 +9,7 @@ Benefits include:
 
 - The run survives the operator's machine. Reconnect with
   `Sailbox.get(sailbox_id)`.
-- The Sailbox can pause or sleep between bursts.
+- The Sailbox can pause or sleep between externally triggered bursts.
 - Dependencies live in a repeatable custom image.
 - A checkpoint can become a prepared template, and forks can fan it out.
 
@@ -35,14 +35,20 @@ prerequisite.
    installing them on every Sailbox. See
    <https://docs.sailresearch.com/sailbox-sdk-images>.
 2. Put the code in the Sailbox. Clone a repository the Sailbox can reach, or
-   transfer the working tree with the filesystem APIs.
+   transfer only tracked source files with the filesystem APIs. Exclude
+   ignored and untracked secret-bearing files such as `.env`, `.npmrc`, and
+   service-account JSON.
 3. Pass `SAIL_API_KEY` and other secrets through the `env=` mapping on `run`
    or `exec`. Never put secrets in shell strings, images, or repository files.
-4. Start the harness with an explicit timeout. Stream output when the caller
-   must observe it, or have a long-running worker write logs that later
-   commands can inspect.
+4. Use an explicit timeout for startup checks and finite harness runs. Omit
+   the exec timeout for an intentionally persistent worker because reaching
+   the timeout kills the command. Stream output when the caller must observe
+   it, or have the worker write logs that later commands can inspect.
 5. Store `sailbox_id` with the user's deployment state. Use one Sailbox per
-   worker or task, pause or sleep it while idle, and terminate it when
+   worker or task. Pause or sleep it while idle only when an external
+   scheduler, network request, or explicit exec or resume operation will wake
+   it for the next unit of work. A process inside an inactive Sailbox cannot
+   wake itself. Otherwise, keep the worker running. Terminate the Sailbox when
    decommissioned.
 
 ## Verify parity

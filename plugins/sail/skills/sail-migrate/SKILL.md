@@ -139,11 +139,12 @@ response = client.responses.create(
   Responses and Chat Completions clients.
 - For the Anthropic SDK, use the bare host `https://api.sailresearch.com`.
   The SDK appends `/v1/messages`, so a `/v1` base URL incorrectly resolves to
-  `/v1/v1/messages`. Pass `SAIL_API_KEY` as `auth_token`, not `api_key`, so
-  the SDK sends the supported bearer authorization header. The TypeScript
-  SDK's `metadata` type does not include Sail's `completion_window` extension;
-  cast only the `metadata` field, with a comment, and note the cast in the
-  report.
+  `/v1/v1/messages`. In Python, pass the bare host as `base_url` and
+  `SAIL_API_KEY` as `auth_token`, not `api_key`. In TypeScript, use `baseURL`
+  and `authToken`, not `apiKey`. These options send the supported bearer
+  authorization header. The TypeScript SDK's `metadata` type does not include
+  Sail's `completion_window` extension; cast only the `metadata` field, with a
+  comment, and note the cast in the report.
 - Read `SAIL_API_KEY` from the environment.
 - Set the model and `metadata.completion_window` selected in steps 3 and 4.
 - Use `background=True` for `flex` and very long-running Responses requests.
