@@ -144,9 +144,13 @@ response = client.responses.create(
   `/v1/v1/messages`. In Python, pass the bare host as `base_url` and
   `SAIL_API_KEY` as `auth_token`, not `api_key`. In TypeScript, use `baseURL`
   and `authToken`, not `apiKey`. These options send the supported bearer
-  authorization header. The TypeScript SDK's `metadata` type does not include
-  Sail's `completion_window` extension; cast only the `metadata` field, with a
-  comment, and note the cast in the report.
+  authorization header. For framework or environment-only configuration, set
+  `ANTHROPIC_BASE_URL=https://api.sailresearch.com` and set
+  `ANTHROPIC_AUTH_TOKEN` from `SAIL_API_KEY`; do not use `ANTHROPIC_API_KEY`,
+  which selects the unsupported `x-api-key` header. The Python and TypeScript
+  SDKs' `metadata` types do not include Sail's `completion_window` extension;
+  cast only the `metadata` field, with a comment, and note the cast in the
+  report.
 - Read `SAIL_API_KEY` from the environment.
 - Set the model and `metadata.completion_window` selected in steps 3 and 4.
   Preserve every metadata entry the call site already sends; add
@@ -164,8 +168,10 @@ client configuration, model, and completion window:
 
 ```python
 import os
+from typing import cast
 
 from anthropic import Anthropic
+from anthropic.types import MetadataParam
 
 client = Anthropic(
     base_url="https://api.sailresearch.com",
@@ -174,7 +180,8 @@ client = Anthropic(
 
 message = client.messages.create(
     model="<model chosen in step 3>",
-    metadata={"completion_window": "standard"},
+    # The Anthropic SDK type omits Sail's completion_window extension.
+    metadata=cast(MetadataParam, {"completion_window": "standard"}),
     max_tokens=...,
     messages=...,  # unchanged
 )
@@ -212,7 +219,9 @@ app = sail.App.find(name="my-agent", mint_if_missing=True)
 sb = sail.Sailbox.create(app=app, name="worker-1")
 
 try:
-    result = sb.run("python3 run_task.py", cwd="/workspace", timeout=600)
+    result = sb.run(
+        "python3 run_task.py", cwd="/workspace", timeout=600, check=True
+    )
     print(result.exit_code, result.stdout)
 finally:
     sb.terminate()
@@ -258,9 +267,10 @@ workload fits.
 2. For typed or compiled languages, also run the typechecker or build,
    installing dev dependencies if permitted. If that is impossible, list
    typechecking as an untested path in the report.
-3. With approval and a configured `SAIL_API_KEY`, make one real request
-   through the migrated inference configuration. If the sandbox leg exists,
-   run one real Sailbox command and clean up any Sailbox created by the smoke.
+3. With approval and a configured `SAIL_API_KEY`, smoke each migrated leg. If
+   the inference leg exists, make one real request through the migrated
+   inference configuration. If the sandbox leg exists, run one real Sailbox
+   command and clean up any Sailbox created by the smoke.
 4. If no key is configured, walk the user through creating one and exporting
    it in their own shell. Do not ask them to paste it to you.
 5. If the user opted into the comparison, run the migrated branch on the same

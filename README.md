@@ -3,8 +3,8 @@
 Agent Skills for migrating existing apps to [Sail](https://sailresearch.com),
 building **observable background agents**, and allocating preemptible GPU
 compute. Move inference and sandbox execution to Sail, instrument an agent run
-as a **Voyage**, delegate heavy work to Sail workers, or run a checkpointed
-training job on a dedicated GPU VM.
+as a **Voyage**, delegate heavy work to Sail workers from Claude Code, or run a
+checkpointed training job on a dedicated GPU VM.
 
 These skills follow the open [Agent Skills](https://agentskills.io) standard:
 plain `SKILL.md` folders, packaged as installable plugins for both **Claude
@@ -22,7 +22,7 @@ troubleshooting, see the
 | `sail-voyage` | Build or instrument any Voyage — the entrypoint. Series/version naming, agents, spans, events, Sailbox exec attribution, artifact retrieval, terminal lifecycle. Includes a minimal runnable example. |
 | `sail-inference-with-voyage` | Attribute Sail inference model calls to the active agent/span (header propagation, background vs sync, raw-client fallback). |
 | `sail-voyage-debugging` | A Voyage already ran but renders wrong in the dashboard — symptom → cause → fix. |
-| `sail-fanout-policy` | Delegate or offload heavy coding/analysis to GLM workers on Sail via the `sail_delegate` and `sail_fanout` MCP tools — when to hand off vs. do it yourself, delegating autonomously under a standing preference, how to fan out independent subtasks, and how to apply the diffs workers return. |
+| `sail-fanout-policy` | In Claude Code, delegate or offload heavy coding/analysis to GLM workers on Sail via the `sail_delegate` and `sail_fanout` MCP tools — when to hand off vs. do it yourself, delegating autonomously under a standing preference, how to fan out independent subtasks, and how to apply the diffs workers return. |
 | `sail-gpu-marketplace` | Allocate, connect to, and release a preemptible GPU VM, or recover a cooperative checkpointed job after interruption. |
 
 ## Install
@@ -68,6 +68,8 @@ codex plugin add sail@sail
 ```
 
 The skills then load by relevance, the same as in Claude Code.
+The delegation MCP tools currently ship only with the Claude Code plugin; the
+other skills work in Codex.
 
 ### ChatGPT and other Agent Skills tools
 
