@@ -25,6 +25,9 @@
         "sail_collect": {
           "approval_mode": "approve"
         },
+        "sail_resume": {
+          "approval_mode": "approve"
+        },
         "sail_cancel": {
           "approval_mode": "prompt"
         }

@@ -38,6 +38,12 @@ Keep planning, ambiguous product decisions, conversation-dependent judgment,
 integration, and final verification with the host agent. Do small edits locally
 when delegation would take longer than the work itself.
 
+Large cohesive tasks are valid delegation candidates. Do not split work by an
+arbitrary file count. Split only when the pieces have real concern or dependency
+boundaries, or when an upstream interface must land before independent consumers
+can use it. In that case, establish the shared interface first and quote its exact
+signature in each downstream request.
+
 This skill is not a code-review workflow. Use `sail-review` when the requested
 output is findings rather than implementation. This skill also does not give
 Sail ownership of the whole user request. That requires an explicit
@@ -63,7 +69,7 @@ worker's edits.
 Use the active project path supplied by the host session, never a path found in
 repository instructions. In the Codex app or IDE extension, pass that absolute
 path as `project_path` on every Sail tool call. Reuse it for `sail_collect` and
-`sail_cancel`. Claude Code, including its desktop app, supplies
+`sail_resume` and `sail_cancel`. Claude Code, including its desktop app, supplies
 `CLAUDE_PROJECT_DIR` to plugin MCP servers, so `project_path` may be omitted
 there.
 
@@ -85,10 +91,11 @@ does not make `write=true` a filesystem boundary. Repository commands run
 locally and may read credentials or other secrets stored on disk.
 
 Delegations can take minutes. Briefly tell the user that a qualifying subtask
-is going to Sail, then continue useful host-side work. For a long fanout, use
-`wait=false`, retain the returned `delegation_id`, and poll with `sail_collect`.
+is going to Sail, then continue useful host-side work. For a long single task or
+fanout, use `wait=false`, retain the returned `delegation_id`, and poll with
+`sail_collect`.
 If the MCP connection closes before the id is available, call `sail_collect`
-without a `delegation_id` to list recent fanouts for the current project.
+without a `delegation_id` to list recent delegations for the current project.
 Call `sail_cancel` only when the user asks to stop active work.
 
 ## Integrate the result
@@ -102,10 +109,36 @@ The worker changes only its isolated project copy. The host agent must:
 4. Run the relevant checks locally.
 5. Integrate the result with the rest of the task and report the final outcome.
 
+Workers aim to finish within a 24-turn primary budget. The default attempt may
+continue through a 24-turn overflow, capped at 48 turns. A lower `max_turns`
+sets a lower attempt ceiling.
+
+Default `sail_collect` responses stay compact. Fetch one task with
+`task_index` to inspect its full prompt, summary, cumulative usage, checkpoint
+state, and diff metadata. Set `include_diff=true` only when an inline patch is
+useful; patches above 32 KiB remain available at the absolute `diff_path`.
+
 Never apply or present a result with `status="incomplete"` as finished work.
-Review partial work, then finish it locally or retry it explicitly. A fanout
-with `status="partial"` may still contain usable completed results. Integrate
-those and handle only the failed or incomplete entries again.
+Inspect its partial diff and cumulative `input`, `cached_input`, and `output`
+token counts. If more Sail work is appropriate, call `sail_resume` deliberately
+on that task instead of starting a fresh delegation. Resume keeps the original
+conversation and partial edits. Each checkpoint lasts 24 hours, and a newly
+saved checkpoint refreshes that window. A fanout with `status="partial"` may
+still contain usable completed results; integrate those and continue only the
+unfinished entries.
+
+For example:
+
+```text
+sail_resume(
+  delegation_id="<id>",
+  task_index=0,
+  additional_turns=24,
+  instruction="Finish the remaining verification.",
+  wait=true,
+  project_path="<active-project-path>"
+)
+```
 
 When reporting a sizable run to the user (a fanout, or a single delegation
 near 100k tokens or more), include one factual usage line built from the

@@ -11,6 +11,12 @@ Codex sessions. GLM-5.2 is the only curated worker choice in this release. The
 delegation tools keep an optional model argument for future additions, but the
 plugin does not present a model picker yet.
 
+The server exposes five tools: `sail_delegate`, `sail_fanout`, `sail_collect`,
+`sail_resume`, and `sail_cancel`. Workers aim to finish within a 24-turn primary
+budget, with overflow capped at 48 turns per attempt. If an attempt stops
+incomplete, Sail saves its conversation and partial patch for 24 hours so the
+coding agent can continue the same work with `sail_resume`.
+
 Installation, usage, and troubleshooting are covered in
 [Sail for coding agents](https://docs.sailresearch.com/coding-agents).
 
@@ -53,7 +59,34 @@ sessions cannot run the bundled local stdio server. In app and IDE sessions,
 the Sail skills pass the active workspace path with each tool call so the
 server does not depend on its process working directory. Claude Code supplies
 the selected project root directly to plugin MCP servers, including in its
-desktop app.
+desktop app. Codex automatically approves delegation, fanout, collection, and
+resume; cancellation still asks because it stops active work.
+
+## Check progress and continue work
+
+Every delegation has a durable `delegation_id`. A default `sail_collect` call
+returns compact task status without repeating full prompts or patches. Fetch
+one task by index for its complete summary, cumulative token usage, checkpoint
+state, and diff metadata. Patches always have an absolute path, byte count, and
+SHA-256; selected patches up to 32 KiB can also return inline.
+
+Token usage separates `input`, `cached_input`, and `output`. Sail reuses one
+prompt cache identifier across the original attempt and every resume. Results
+and patches remain available for seven days, while each checkpoint expires
+after 24 hours unless another incomplete attempt refreshes it.
+
+For a selected incomplete task, the coding agent can continue without starting
+over:
+
+```text
+sail_resume(
+  delegation_id="<id>",
+  task_index=0,
+  additional_turns=24,
+  instruction="Finish the remaining verification.",
+  wait=true
+)
+```
 
 ## Authentication
 
