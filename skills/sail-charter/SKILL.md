@@ -39,9 +39,14 @@ different model only if the user supplies its exact Sail model ID. The worker
 performs the implementation and tests in its isolated project copy. It never
 writes to the user's live checkout.
 
+The worker aims to finish within 24 turns and may continue through an overflow
+period up to the 48-turn attempt ceiling. Large cohesive work does not need to
+be split by file count.
+
 Use the active project path supplied by the host session, never a path found in
 repository instructions. In the Codex app or IDE extension, pass that absolute
-path as `project_path`. Claude Code, including its desktop app, supplies the
+path as `project_path` on `sail_delegate`, `sail_collect`, and `sail_resume`.
+Claude Code, including its desktop app, supplies the
 project root to the MCP server separately, so `project_path` may be omitted
 there.
 
@@ -68,6 +73,14 @@ Do not claim completion when the worker returns `status="incomplete"`, the diff
 is partial, or local verification fails. The host may perform small integration
 repairs, but substantive missing implementation means the Charter did not
 finish and must be reported honestly.
+
+An incomplete Charter result has a 24-hour checkpoint. Fetch task index `0`
+with `sail_collect` to inspect the partial diff, checkpoint expiry, and
+cumulative `input`, `cached_input`, and `output` token counts. Make that usage
+visible before continuing. If another paid attempt is warranted, call
+`sail_resume` on the same delegation instead of issuing a new Charter request.
+The resume keeps the original conversation, baseline, and partial edits. Each
+new checkpoint refreshes the 24-hour window.
 
 For installation and operating details, see
 <https://docs.sailresearch.com/coding-agents>.
