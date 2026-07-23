@@ -1,0 +1,6 @@
+interface:
+  display_name: "Sail Charter"
+  short_description: "Delegate an entire coding task to Sail"
+  default_prompt: "Use $sail-charter to have Sail own this entire task."
+policy:
+  allow_implicit_invocation: false

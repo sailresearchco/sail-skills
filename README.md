@@ -1,119 +1,94 @@
 # Sail Skills
 
-Agent Skills for migrating existing apps to [Sail](https://sailresearch.com),
-building **observable background agents**, and allocating preemptible GPU
-compute. Move inference and sandbox execution to Sail, instrument an agent run
-as a **Voyage**, delegate heavy work to Sail workers from Claude Code, or run a
-checkpointed training job on a dedicated GPU VM.
+Use Sail models from the coding agent you already work in. The Sail plugin can
+delegate scoped coding work, request a read-only review, or give a Sail model
+an entire task. It also includes skills for migrating applications to Sail,
+building observable agents, and using preemptible GPU compute.
 
-These skills follow the open [Agent Skills](https://agentskills.io) standard:
-plain `SKILL.md` folders, packaged as installable plugins for both **Claude
-Code** and **Codex**. Other Agent Skills-compatible tools can use the same
-skill folders where they support importing standard skills. Installing the
-plugin does not require a Sail API key. For delegation setup, usage, and
-troubleshooting, see the
-[Claude Code delegation guide](https://docs.sailresearch.com/claude-code-delegation).
+The plugin uses standard `SKILL.md` folders and one `sail-delegate` MCP server.
+The same skill payload and server launch command ship for Claude Code and local
+Codex sessions. GLM-5.2 is the only curated worker choice in this release. The
+delegation tools keep an optional model argument for future additions, but the
+plugin does not present a model picker yet.
 
-## What's included
+Installation, usage, and troubleshooting are covered in
+[Sail for coding agents](https://docs.sailresearch.com/coding-agents).
+
+## Included skills
 
 | Skill | Use it when |
 | --- | --- |
-| `sail-migrate` | Migrate an existing app's inference or third-party sandbox execution to Sail while preserving behavior, optionally compare before/after runs, and move compatible background harnesses into a Sailbox. |
-| `sail-voyage` | Build or instrument any Voyage — the entrypoint. Series/version naming, agents, spans, events, Sailbox exec attribution, artifact retrieval, terminal lifecycle. Includes a minimal runnable example. |
-| `sail-inference-with-voyage` | Attribute Sail inference model calls to the active agent/span (header propagation, background vs sync, raw-client fallback). |
-| `sail-voyage-debugging` | A Voyage already ran but renders wrong in the dashboard — symptom → cause → fix. |
-| `sail-fanout-policy` | In Claude Code, delegate or offload heavy coding/analysis to GLM workers on Sail via the `sail_delegate` and `sail_fanout` MCP tools — when to hand off vs. do it yourself, delegating autonomously under a standing preference, how to fan out independent subtasks, and how to apply the diffs workers return. |
-| `sail-gpu-marketplace` | Allocate, connect to, and release a preemptible GPU VM, or recover a cooperative checkpointed job after interruption. |
+| `sail-subs` | Automatically delegate suitable scoped work while the host keeps ownership of planning, integration, and verification. |
+| `sail-review` | Ask for an on-demand, read-only review with severity-ordered findings and file references. |
+| `sail-charter` | Explicitly give a Sail model ownership of an entire coding task. |
+| `sail-update` | Update the installed Sail plugin from the current coding agent and verify its version. |
+| `sail-migrate` | Migrate an application's inference or third-party sandbox execution to Sail while preserving behavior. |
+| `sail-voyage` | Build or instrument a Voyage with agents, spans, events, model-call attribution, Sailbox commands, and terminal lifecycle. |
+| `sail-inference-with-voyage` | Attribute Sail inference calls to the active Voyage, agent, and span. |
+| `sail-voyage-debugging` | Diagnose a Voyage that ran but appears incomplete or incorrect in the dashboard. |
+| `sail-gpu-marketplace` | Allocate, connect to, and release a preemptible GPU VM, or recover checkpointed work after an interruption. |
 
 ## Install
 
-### Claude Code (plugin)
+### Claude Code
 
 ```text
 /plugin marketplace add sailresearchco/sail-skills
 /plugin install sail@sail
 ```
 
-Skills load automatically when relevant; invoke directly as `/sail:sail-voyage`.
+Skills load when relevant. You can also invoke one directly, such as
+`/sail:sail-review`.
 
-To update an existing installation:
-
-```text
-/plugin marketplace update sail
-/plugin update sail@sail
-/reload-plugins
-```
-
-If Claude still shows an older version, reinstall the plugin and reload:
-
-```text
-/plugin uninstall sail@sail
-/plugin install sail@sail
-/reload-plugins
-```
-
-Restart Claude Code if it prompts you to apply the update.
-
-Or, from a clone, without the marketplace:
-
-```sh
-claude --plugin-dir /path/to/sail-skills
-```
-
-### Codex (plugin)
+### Codex
 
 ```sh
 codex plugin marketplace add sailresearchco/sail-skills
 codex plugin add sail@sail
 ```
 
-The skills then load by relevance, the same as in Claude Code.
-The delegation MCP tools currently ship only with the Claude Code plugin; the
-other skills work in Codex.
+The Codex package includes all nine skills and the `sail-delegate` MCP server.
+The server works in local Codex app, CLI, and IDE sessions. Hosted Codex
+sessions cannot run the bundled local stdio server. In app and IDE sessions,
+the Sail skills pass the active workspace path with each tool call so the
+server does not depend on its process working directory. Claude Code supplies
+the selected project root directly to plugin MCP servers, including in its
+desktop app.
 
-### ChatGPT and other Agent Skills tools
+## Authentication
 
-The `skills/` folders are the portable payload. ChatGPT skill uploads have not
-been smoke-tested with this package yet; where your plan supports uploading
-skills, copy the folders structure-intact (they cross-reference each other by
-relative path) or download this repository as a ZIP.
+Installing the plugin does not require a Sail API key. Authenticate before the
+first delegation:
 
-## Prerequisites
+```sh
+sail auth login
+```
 
-1. A Sail account and an org API key — create one at
-   <https://app.sailresearch.com/api-keys>.
-2. Provision the key one of two ways: `export SAIL_API_KEY=sk_...` in the
-   environment your agent runs in, or run `sail auth login` (it stores the key
-   under `~/.sail`, which the SDK reads the same way). `sail auth login` is the
-   desktop-safe option — Dock-launched apps never inherit a shell's exported
-   variables.
-3. The Python SDK: `pip install sail` (use `pip install 'sail[mcp]'` for the
-   `sail-delegate` delegation server).
+If you need the CLI first:
 
-## Quick start
+```sh
+curl -fsSL https://cli.sailresearch.com/install.sh | sh
+```
 
-To migrate an existing app, ask your agent:
+You can instead export `SAIL_API_KEY` before starting your coding agent. A
+stored login is more reliable for desktop apps because they may not inherit
+shell variables.
 
-> Migrate this app's inference and sandbox execution to Sail.
+## Update
 
-The `sail-migrate` skill inventories both kinds of call site, selects models
-and completion windows, preserves existing behavior, and can compare the same
-fixed input before and after the migration. For compatible background work, it
-also recommends running the harness itself inside a Sailbox.
+On version `0.3.0` or later, use `/sail:sail-update` in Claude Code or
+`$sail-update` in Codex. The coding agent runs the client update commands and
+verifies the installed version. Reload plugins or start a new session when it
+finishes.
 
-To build a new observable background agent, ask:
-
-> Build a small background research agent on Sail and make the whole run show
-> up as a trace I can open in the dashboard — each step, the model calls it
-> makes, and the sandbox commands it runs, attributed to the right part of the
-> workflow.
-
-The `sail-voyage` skill takes it from there.
+If the update skill is missing, follow the manual update instructions in
+[Sail for coding agents](https://docs.sailresearch.com/coding-agents) once to
+reach `0.3.0` or later.
 
 ## Contributing
 
-This repo is a curated export of an internal source-of-truth tree — see
-[CONTRIBUTING.md](./CONTRIBUTING.md) for how proposals and fixes flow.
+This repository is a curated export from Sail's source tree. See
+[CONTRIBUTING.md](./CONTRIBUTING.md) before proposing a change.
 
 ## License
 

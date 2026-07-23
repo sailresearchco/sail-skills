@@ -1,0 +1,6 @@
+interface:
+  display_name: "Sail Update"
+  short_description: "Update the installed Sail plugin safely"
+  default_prompt: "Use $sail-update to update my installed Sail plugin."
+policy:
+  allow_implicit_invocation: true
