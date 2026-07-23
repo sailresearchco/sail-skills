@@ -2,7 +2,7 @@
   "name": "sail",
   "displayName": "Sail",
   "description": "Migrate inference, build observable agents, allocate preemptible GPU compute, and delegate coding work to Sail from your preferred coding agent.",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "author": {
     "name": "Sail Research"
   },
