@@ -1,5 +1,5 @@
 {
-  "mcp_servers": {
+  "mcpServers": {
     "sail-delegate": {
       "command": "uvx",
       "args": [
