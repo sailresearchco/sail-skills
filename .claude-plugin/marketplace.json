@@ -1,6 +1,6 @@
 {
   "name": "sail",
-  "description": "Official Sail skills for migrating apps, building observable agents, using preemptible GPU compute, and delegating work from Claude Code.",
+  "description": "Official Sail skills for migrating apps, building observable agents, using preemptible GPU compute, and delegating coding work.",
   "owner": {
     "name": "Sail Research",
     "url": "https://sailresearch.com"
@@ -9,7 +9,7 @@
     {
       "name": "sail",
       "source": "./",
-      "description": "Migrate inference, sandbox execution, and agent harnesses; build observable agents; allocate preemptible GPU compute; and, in Claude Code, delegate heavy coding or analysis to Sail workers."
+      "description": "Migrate inference and agent harnesses, build observable agents, allocate preemptible GPU compute, and delegate coding work to Sail from Claude Code or Codex."
     }
   ]
 }

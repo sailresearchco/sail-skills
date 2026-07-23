@@ -29,6 +29,8 @@ TERMINAL_STATES = {
     "failed",
 }
 INTERRUPTED_STATES = {"interrupting", "interrupted"}
+WORKLOAD_CONTAINER = "sail-workload"
+WORKLOAD_MONITOR_RECONNECTS = 3
 
 
 class GPUError(RuntimeError):
@@ -146,6 +148,7 @@ def create_allocation(
     identity: Path,
     checkpoint_uri: str = "",
     resume_from: str = "",
+    image: str | None = None,
     idempotency_key: str = "",
 ) -> dict[str, Any]:
     request_key = idempotency_key or new_idempotency_key()
@@ -158,6 +161,10 @@ def create_allocation(
         body["checkpoint_uri"] = checkpoint_uri
     if resume_from:
         body["resume_from"] = resume_from
+    if image is not None:
+        if not image.strip():
+            raise GPUError("--image must not be empty")
+        body["image"] = image
     log(f"creating allocation with Idempotency-Key {request_key}")
     return api_request(
         base_url,
@@ -454,6 +461,126 @@ def wait_for_gpu(
     raise GPUError(f"timed out waiting for CUDA on {allocation_id}")
 
 
+def workload_contract(allocation: dict[str, Any]) -> dict[str, Any]:
+    workload = allocation.get("workload")
+    if not isinstance(workload, dict):
+        raise GPUError("custom-image allocation has no configured workload contract")
+    port = workload.get("port")
+    health_path = workload.get("health_path")
+    health_field = workload.get("health_json_field")
+    health_value = workload.get("health_json_value")
+    if isinstance(port, bool) or not isinstance(port, int) or not 1 <= port <= 65535:
+        raise GPUError("custom-image workload contract has an invalid port")
+    if (
+        not isinstance(health_path, str)
+        or not health_path.startswith("/")
+        or health_path.startswith("//")
+    ):
+        raise GPUError("custom-image workload contract has an invalid health path")
+    if not isinstance(health_field, str) or not health_field:
+        raise GPUError("custom-image workload contract has no health JSON field")
+    if not isinstance(health_value, str) or not health_value:
+        raise GPUError("custom-image workload contract has no health JSON value")
+    return {
+        "port": port,
+        "health_path": health_path,
+        "health_json_field": health_field,
+        "health_json_value": health_value,
+    }
+
+
+def workload_health_command(workload: dict[str, Any]) -> str:
+    url = f"http://127.0.0.1:{workload['port']}{workload['health_path']}"
+    probe = "\n".join(
+        [
+            "import json",
+            "import urllib.request",
+            "class NoRedirect(urllib.request.HTTPRedirectHandler):",
+            "    def redirect_request(self, request, file_pointer, code, message, headers, new_url):",
+            "        return None",
+            f"response = urllib.request.build_opener(NoRedirect()).open({url!r}, timeout=5)",
+            "assert 200 <= response.status < 300",
+            "payload = json.load(response)",
+            f"assert payload.get({workload['health_json_field']!r}) == "
+            f"{workload['health_json_value']!r}",
+        ]
+    )
+    return "python3 -c " + shlex.quote(probe)
+
+
+def wait_for_workload(
+    script: Path,
+    access_host: str,
+    allocation_id: str,
+    identity: Path,
+    ssh_user: str,
+    workload: dict[str, Any],
+    timeout_seconds: int,
+) -> dict[str, float]:
+    deadline = time.monotonic() + timeout_seconds
+    ssh_started = time.monotonic()
+    while time.monotonic() < deadline:
+        result = run_remote(
+            script,
+            access_host,
+            allocation_id,
+            identity,
+            ssh_user,
+            "true",
+            capture_output=True,
+        )
+        if result.returncode == 0:
+            break
+        time.sleep(3)
+    else:
+        raise GPUError(f"timed out waiting for SSH on {allocation_id}")
+    ssh_ready = time.monotonic()
+
+    inspect = (
+        "nvidia-smi -L >/dev/null && "
+        f"docker inspect --format '{{{{.State.Status}}}} {{{{.State.ExitCode}}}}' {WORKLOAD_CONTAINER}"
+    )
+    health = workload_health_command(workload)
+    last_status = ""
+    while time.monotonic() < deadline:
+        result = run_remote(
+            script,
+            access_host,
+            allocation_id,
+            identity,
+            ssh_user,
+            inspect,
+            capture_output=True,
+        )
+        if result.returncode == 0:
+            status, _, exit_code = result.stdout.strip().partition(" ")
+            if status != last_status:
+                log(f"{allocation_id}: workload container {status}")
+                last_status = status
+            if status in {"exited", "dead"}:
+                raise GPUError(
+                    f"{WORKLOAD_CONTAINER} exited before readiness with status {exit_code or 'unknown'}"
+                )
+            if status == "running":
+                probe = run_remote(
+                    script,
+                    access_host,
+                    allocation_id,
+                    identity,
+                    ssh_user,
+                    health,
+                    capture_output=True,
+                )
+                if probe.returncode == 0:
+                    workload_ready = time.monotonic()
+                    return {
+                        "ssh_wait_seconds": round(ssh_ready - ssh_started, 3),
+                        "workload_wait_seconds": round(workload_ready - ssh_ready, 3),
+                    }
+        time.sleep(5)
+    raise GPUError(f"timed out waiting for workload readiness on {allocation_id}")
+
+
 def allocation_after_disconnect(
     base_url: str, allocation_id: str, timeout_seconds: int = 30
 ) -> dict[str, Any]:
@@ -474,6 +601,7 @@ def run_resumable(args: argparse.Namespace, script: Path) -> dict[str, Any]:
         raise GPUError("run requires --checkpoint-uri")
     identity = identity_path(args.identity)
     resume_from = args.resume_from
+    image = getattr(args, "image", None)
     attempts: list[dict[str, Any]] = []
 
     for attempt in range(args.max_resumes + 1):
@@ -485,36 +613,74 @@ def run_resumable(args: argparse.Namespace, script: Path) -> dict[str, Any]:
             identity=identity,
             checkpoint_uri=args.checkpoint_uri,
             resume_from=resume_from,
+            image=image,
         )
+        created_workload = allocation.get("workload")
         allocation_id = str(allocation["id"])
         terminal = False
         cleanup_safe = True
         try:
-            wait_for_state(args.api, allocation_id, {"running"}, args.timeout)
+            allocation = wait_for_state(
+                args.api, allocation_id, {"running"}, args.timeout
+            )
+            if image is not None and "workload" not in allocation and created_workload:
+                allocation["workload"] = created_workload
             running_at = time.monotonic()
-            ready = wait_for_gpu(
-                script,
-                args.access_host,
-                allocation_id,
-                identity,
-                args.ssh_user,
-                args.ssh_timeout,
-            )
-            cuda_at = time.monotonic()
-            setup = (
-                "export PATH=/opt/pytorch/bin:$PATH; "
-                f"export SAIL_CHECKPOINT_URI={shlex.quote(args.checkpoint_uri)}; "
-                f"export SAIL_RESUME_FROM={shlex.quote(resume_from)}; "
-            )
-            result, allocation = run_remote_until_terminal(
-                script,
-                args.access_host,
-                allocation_id,
-                identity,
-                args.ssh_user,
-                setup + args.command,
-                args.api,
-            )
+            if image is not None:
+                image_workload = workload_contract(allocation)
+                ready = wait_for_workload(
+                    script,
+                    args.access_host,
+                    allocation_id,
+                    identity,
+                    args.ssh_user,
+                    image_workload,
+                    args.ssh_timeout,
+                )
+                remote_command = (
+                    f'code=$(docker wait {WORKLOAD_CONTAINER}); exit "$code"'
+                )
+            else:
+                ready = wait_for_gpu(
+                    script,
+                    args.access_host,
+                    allocation_id,
+                    identity,
+                    args.ssh_user,
+                    args.ssh_timeout,
+                )
+                setup = (
+                    "export PATH=/opt/pytorch/bin:$PATH; "
+                    f"export SAIL_CHECKPOINT_URI={shlex.quote(args.checkpoint_uri)}; "
+                    f"export SAIL_RESUME_FROM={shlex.quote(resume_from)}; "
+                    f"export SAIL_ALLOCATION_ID={shlex.quote(allocation_id)}; "
+                )
+                remote_command = setup + args.command
+            ready_at = time.monotonic()
+            monitor_reconnects = 0
+            while True:
+                result, allocation = run_remote_until_terminal(
+                    script,
+                    args.access_host,
+                    allocation_id,
+                    identity,
+                    args.ssh_user,
+                    remote_command,
+                    args.api,
+                )
+                if (
+                    image is None
+                    or result.returncode != 255
+                    or allocation.get("state") != "running"
+                    or monitor_reconnects >= WORKLOAD_MONITOR_RECONNECTS
+                ):
+                    break
+                monitor_reconnects += 1
+                log(
+                    f"{allocation_id}: workload monitor disconnected; "
+                    f"reconnecting ({monitor_reconnects}/"
+                    f"{WORKLOAD_MONITOR_RECONNECTS})"
+                )
             if allocation.get("state") == "interrupting":
                 allocation = wait_for_state(
                     args.api,
@@ -531,7 +697,12 @@ def run_resumable(args: argparse.Namespace, script: Path) -> dict[str, Any]:
                     "state": state,
                     "command_exit_code": result.returncode,
                     "running_seconds": round(running_at - created_at, 3),
-                    "cuda_ready_seconds": round(cuda_at - created_at, 3),
+                    "ready_seconds": round(ready_at - created_at, 3),
+                    **(
+                        {"workload_ready_seconds": round(ready_at - created_at, 3)}
+                        if image is not None
+                        else {"cuda_ready_seconds": round(ready_at - created_at, 3)}
+                    ),
                     **ready,
                 }
             )
@@ -584,8 +755,10 @@ def build_parser() -> argparse.ArgumentParser:
     allocate.add_argument("--identity", default="")
     allocate.add_argument("--checkpoint-uri", default="")
     allocate.add_argument("--resume-from", default="")
+    allocate.add_argument("--image", default=None)
     allocate.add_argument("--idempotency-key", default="")
     allocate.add_argument("--timeout", type=int, default=1800)
+    allocate.add_argument("--ssh-timeout", type=int, default=600)
 
     get = subparsers.add_parser("get")
     get.add_argument("allocation_id")
@@ -628,7 +801,9 @@ def build_parser() -> argparse.ArgumentParser:
     run.add_argument("--timeout", type=int, default=1800)
     run.add_argument("--ssh-timeout", type=int, default=600)
     run.add_argument("--max-resumes", type=int, default=3)
-    run.add_argument("--command", required=True)
+    run_mode = run.add_mutually_exclusive_group(required=True)
+    run_mode.add_argument("--command")
+    run_mode.add_argument("--image")
     return parser
 
 
@@ -641,6 +816,12 @@ def main(argv: list[str] | None = None) -> int:
     script = Path(__file__).resolve()
 
     if args.operation == "allocate":
+        if args.image is not None and not args.image.strip():
+            raise GPUError("--image must not be empty")
+        if args.image is not None and not args.access_host:
+            raise GPUError(
+                "set SAIL_GPU_ACCESS_HOST to wait for custom-image readiness"
+            )
         identity = identity_path(args.identity)
         started = time.monotonic()
         allocation = create_allocation(
@@ -650,12 +831,39 @@ def main(argv: list[str] | None = None) -> int:
             identity=identity,
             checkpoint_uri=args.checkpoint_uri,
             resume_from=args.resume_from,
+            image=args.image,
             idempotency_key=args.idempotency_key,
         )
+        created_workload = allocation.get("workload")
         allocation = wait_for_state(
             args.api, str(allocation["id"]), {"running"}, args.timeout
         )
+        if args.image is not None and "workload" not in allocation and created_workload:
+            allocation["workload"] = created_workload
         allocation["running_seconds"] = round(time.monotonic() - started, 3)
+        if args.image is not None:
+            try:
+                allocation.update(
+                    wait_for_workload(
+                        script,
+                        args.access_host,
+                        str(allocation["id"]),
+                        identity,
+                        args.ssh_user,
+                        workload_contract(allocation),
+                        args.ssh_timeout,
+                    )
+                )
+            except GPUError:
+                try:
+                    release_allocation(args.api, str(allocation["id"]))
+                except GPUError as cleanup_error:
+                    log(
+                        f"cleanup failed for {allocation['id']} after workload "
+                        f"readiness failure: {cleanup_error}"
+                    )
+                raise
+            allocation["ready_seconds"] = round(time.monotonic() - started, 3)
         print(json.dumps(allocation, indent=2))
         return 0
     if args.operation == "get":

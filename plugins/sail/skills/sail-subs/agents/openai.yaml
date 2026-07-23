@@ -1,0 +1,6 @@
+interface:
+  display_name: "Sail Subs"
+  short_description: "Delegate scoped coding subtasks to Sail"
+  default_prompt: "Use $sail-subs to delegate suitable scoped subtasks to Sail."
+policy:
+  allow_implicit_invocation: true

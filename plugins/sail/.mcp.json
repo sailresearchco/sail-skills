@@ -1,0 +1,34 @@
+{
+  "mcp_servers": {
+    "sail-delegate": {
+      "command": "uvx",
+      "args": [
+        "--python",
+        ">=3.10",
+        "--from",
+        "sail[mcp]",
+        "python",
+        "-I",
+        "-m",
+        "sail.mcp"
+      ],
+      "startup_timeout_sec": 120,
+      "tool_timeout_sec": 3600,
+      "default_tools_approval_mode": "prompt",
+      "tools": {
+        "sail_delegate": {
+          "approval_mode": "approve"
+        },
+        "sail_fanout": {
+          "approval_mode": "approve"
+        },
+        "sail_collect": {
+          "approval_mode": "approve"
+        },
+        "sail_cancel": {
+          "approval_mode": "prompt"
+        }
+      }
+    }
+  }
+}

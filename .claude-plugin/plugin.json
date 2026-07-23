@@ -1,8 +1,8 @@
 {
   "name": "sail",
   "displayName": "Sail",
-  "description": "Migrate inference, sandbox execution, and agent harnesses to Sail; build observable agents; allocate preemptible GPU compute; and, in Claude Code, delegate heavy coding or analysis to Sail workers.",
-  "version": "0.2.26",
+  "description": "Migrate inference, build observable agents, allocate preemptible GPU compute, and delegate coding work to Sail from your preferred coding agent.",
+  "version": "0.3.0",
   "author": {
     "name": "Sail Research"
   },
@@ -13,6 +13,7 @@
     "voyages",
     "agent-skills",
     "claude-code",
+    "codex",
     "sailbox",
     "inference",
     "migration",
