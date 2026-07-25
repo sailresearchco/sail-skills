@@ -88,6 +88,10 @@ def api_request(
             payload = response.read()
     except urllib.error.HTTPError as exc:
         detail = exc.read().decode(errors="replace")
+        if body is not None:
+            workload_auth_token = body.get("workload_auth_token")
+            if isinstance(workload_auth_token, str) and workload_auth_token:
+                detail = detail.replace(workload_auth_token, "<redacted>")
         raise GPUError(f"{method} {path} returned HTTP {exc.code}: {detail}") from exc
     except urllib.error.URLError as exc:
         raise GPUError(f"{method} {path} failed: {exc.reason}") from exc
@@ -140,6 +144,19 @@ def new_idempotency_key() -> str:
     return f"gpu-{uuid.uuid4()}"
 
 
+def read_workload_auth_token(stream: Any) -> str:
+    value = stream.read()
+    if value.endswith("\r\n"):
+        value = value[:-2]
+    elif value.endswith("\n"):
+        value = value[:-1]
+    if not value:
+        raise GPUError("workload authentication token stdin is empty")
+    if "\n" in value or "\r" in value:
+        raise GPUError("workload authentication token stdin must contain one value")
+    return value
+
+
 def create_allocation(
     base_url: str,
     *,
@@ -149,6 +166,7 @@ def create_allocation(
     checkpoint_uri: str = "",
     resume_from: str = "",
     image: str | None = None,
+    workload_auth_token: str | None = None,
     idempotency_key: str = "",
 ) -> dict[str, Any]:
     request_key = idempotency_key or new_idempotency_key()
@@ -165,6 +183,10 @@ def create_allocation(
         if not image.strip():
             raise GPUError("--image must not be empty")
         body["image"] = image
+    if workload_auth_token is not None:
+        if image is None:
+            raise GPUError("workload authentication requires --image")
+        body["workload_auth_token"] = workload_auth_token
     log(f"creating allocation with Idempotency-Key {request_key}")
     return api_request(
         base_url,
@@ -756,6 +778,11 @@ def build_parser() -> argparse.ArgumentParser:
     allocate.add_argument("--checkpoint-uri", default="")
     allocate.add_argument("--resume-from", default="")
     allocate.add_argument("--image", default=None)
+    allocate.add_argument(
+        "--workload-auth-token-stdin",
+        action="store_true",
+        help="read one write-only custom-image authentication token from stdin",
+    )
     allocate.add_argument("--idempotency-key", default="")
     allocate.add_argument("--timeout", type=int, default=1800)
     allocate.add_argument("--ssh-timeout", type=int, default=600)
@@ -832,6 +859,11 @@ def main(argv: list[str] | None = None) -> int:
             checkpoint_uri=args.checkpoint_uri,
             resume_from=args.resume_from,
             image=args.image,
+            workload_auth_token=(
+                read_workload_auth_token(sys.stdin)
+                if args.workload_auth_token_stdin
+                else None
+            ),
             idempotency_key=args.idempotency_key,
         )
         created_workload = allocation.get("workload")
