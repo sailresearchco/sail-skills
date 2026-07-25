@@ -110,6 +110,27 @@ python "$SAIL_GPU_TOOL" allocate \
 For an approved private image, add `--image "$IMAGE_DIGEST"`. The connector
 waits for its configured workload health contract before returning.
 
+If onboarding says the image requires one application bearer token, create a
+new high-entropy token for this allocation and send it over stdin. Never put
+the token in a command-line argument:
+
+```bash
+read -r -s WORKLOAD_AUTH_TOKEN
+printf '%s\n' "$WORKLOAD_AUTH_TOKEN" | \
+  python "$SAIL_GPU_TOOL" allocate \
+    --accelerator H100 \
+    --gpu-count 8 \
+    --checkpoint-uri "$CHECKPOINT_URI" \
+    --image "$IMAGE_DIGEST" \
+    --workload-auth-token-stdin
+```
+
+Keep the same value in the controller and use it only for the image's
+documented application authentication. Sail never returns it. An idempotent
+retry reuses the same value and key. After an interruption, generate a new
+token and create a new allocation; the generic `run --image` replacement loop
+does not synthesize customer application credentials.
+
 Each create carries an `Idempotency-Key`. The connector prints the key before
 the request; reuse it with `--idempotency-key` only when recovering a create
 whose response was lost. Do not reuse a key for a new run.
