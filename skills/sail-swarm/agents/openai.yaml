@@ -1,0 +1,6 @@
+interface:
+  display_name: "Sail Swarm"
+  short_description: "Run a coordinated multi-worker campaign on Sail"
+  default_prompt: "Use $sail-swarm for a coordinated campaign: announce the plan, run a read-only recon fanout, synthesize a field guide and ownership map, then ownership-partitioned implementation waves, then merge and verify."
+policy:
+  allow_implicit_invocation: true

@@ -1,6 +1,6 @@
 ---
 name: sail-subs
-description: Automatically use when the host coding agent owns a larger task and finds one or more scoped, self-contained implementation, analysis, test, documentation, or parallel leaf subtasks for Sail. Treat Sail as a peer execution path for suitable work. A self-contained, token-heavy leaf task that could go to a coding subagent can usually go to a Sail worker instead, conserving the host's token budget. The user does not need to invoke this skill or mention Sail, GLM, or open models. The host keeps planning, integration, judgment, and final verification. For an on-demand read-only code review use sail-review. Use sail-charter only when the user explicitly asks Sail to own the entire task.
+description: Automatically use when the host coding agent owns a larger task and finds one or more scoped, self-contained implementation, analysis, test, documentation, or parallel leaf subtasks for Sail. Treat Sail as a peer execution path for suitable work. A self-contained, token-heavy leaf task that could go to a coding subagent can usually go to a Sail worker instead, conserving the host's token budget. The user does not need to invoke this skill or mention Sail, GLM, or open models. The host keeps planning, integration, judgment, and final verification. For a coordinated campaign across a shared surface that first needs delegated recon and a shared field guide use sail-swarm. For an on-demand read-only code review use sail-review. Use sail-charter only when the user explicitly asks Sail to own the entire task.
 ---
 
 # Sail Subs
@@ -85,6 +85,11 @@ are independent.
 
 When an upstream interface must land before independent consumers can start,
 that interface is wave one and the consumers are a fanout in wave two.
+
+When the tasks span a shared surface that must stay consistent and cannot be
+specified without a discovery pass over the project, use `sail-swarm`. It runs
+a delegated recon round, synthesizes a shared field guide, and partitions file
+ownership before any writable fanout.
 
 Keep the default `max_turns=48` for ordinary leaf and fanout tasks. Use an
 explicit `max_turns=64` only for complex cohesive work that spans tightly

@@ -1,6 +1,6 @@
 {
   "name": "sail",
-  "version": "0.3.4",
+  "version": "0.4.0",
   "description": "Migrate inference, build observable agents, allocate preemptible GPU compute, and delegate coding work to Sail from your preferred coding agent.",
   "author": {
     "name": "Sail Research",
@@ -35,6 +35,7 @@
     "websiteURL": "https://sailresearch.com",
     "defaultPrompt": [
       "Use Sail Subs to delegate suitable scoped coding work.",
+      "Use Sail Swarm to run a coordinated multi-worker campaign.",
       "Use Sail Review to review the current diff.",
       "Use Sail Charter to give Sail ownership of the entire task."
     ]
