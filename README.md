@@ -1,9 +1,10 @@
 # Sail Skills
 
 Use Sail models from the coding agent you already work in. The Sail plugin can
-delegate scoped coding work, request a read-only review, or give a Sail model
-an entire task. It also includes skills for migrating applications to Sail,
-building observable agents, and using preemptible GPU compute.
+delegate scoped coding work, run a coordinated multi-worker campaign, request
+a read-only review, or give a Sail model an entire task. It also includes
+skills for migrating applications to Sail, building observable agents, and
+using preemptible GPU compute.
 
 The plugin uses standard `SKILL.md` folders and one `sail-delegate` MCP server.
 The same skill payload and server launch command ship for Claude Code and local
@@ -25,6 +26,7 @@ Installation, usage, and troubleshooting are covered in
 | Skill | Use it when |
 | --- | --- |
 | `sail-subs` | Automatically delegate suitable scoped work while the host keeps ownership of planning, integration, and verification. |
+| `sail-swarm` | Run an announced, host-owned campaign of coordinated workers when many tasks must stay consistent across a shared surface. |
 | `sail-review` | Ask for an on-demand, read-only review with severity-ordered findings and file references. |
 | `sail-charter` | Explicitly give a Sail model ownership of an entire coding task. |
 | `sail-update` | Update the installed Sail plugin from the current coding agent and verify its version. |
@@ -53,7 +55,7 @@ codex plugin marketplace add sailresearchco/sail-skills
 codex plugin add sail@sail
 ```
 
-The Codex package includes all nine skills and the `sail-delegate` MCP server.
+The Codex package includes all ten skills and the `sail-delegate` MCP server.
 The server works in local Codex app, CLI, and IDE sessions. Hosted Codex
 sessions cannot run the bundled local stdio server. In app and IDE sessions,
 the Sail skills pass the active workspace path with each tool call so the
