@@ -99,9 +99,10 @@ Partition implementation tasks by the ownership map so that no two writable
 tasks touch the same file. This partition, not luck, is what makes the fanout
 safe. Include the field guide verbatim in every task's `context`, then add
 the task's own goal, acceptance criteria, owned paths, and checks to run.
-State in each request that edits must stay within the task's owned files.
-Workers are not sandboxed to their partition, so the host verifies it at
-merge time.
+Declare each task's decisive checks as its `required_checks` so the harness
+gates that partition's completion on them. State in each request that edits
+must stay within the task's owned files. Workers are not sandboxed to their
+partition, so the host verifies it at merge time.
 
 Topology follows the `sail-subs` rules. Independent partitions form one
 fanout. When one interface must land before its consumers can build against
@@ -127,12 +128,16 @@ The host is the merge referee:
    out-of-scope edits, deferring to the file's assigned owner.
 2. Apply diffs wave by wave, in dependency order, resolving conflicts in
    favor of the user's current work.
-3. Run the project's checks after each wave, not only at the end.
+3. Run the project's checks after each wave, not only at the end. Each
+   task's recorded `command_runs` show what ran (worker and harness) and
+   whether later changes made those runs stale, but only your own runs
+   verify the merged tree.
 4. Check results against the field guide, since consistency with it was the
    point of the campaign.
 5. Handle `status="incomplete"` and failed entries by the `sail-subs` rules.
-   Prefer `sail_resume` when a task has a usable checkpoint; fall back
-   locally as a bounded, transparent repair when it does not.
+   Prefer `sail_resume` when a task has a usable checkpoint, switching to a
+   `mode="finalize"` resume after a ceiling or `checks_failed` exit; fall
+   back locally as a bounded, transparent repair when it does not.
 
 For a campaign that warrants it, add a read-only verification fanout over the
 merged result, giving each task a distinct lens such as correctness against

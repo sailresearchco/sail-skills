@@ -53,9 +53,17 @@ Sail ownership of the whole user request. That requires an explicit
 
 Give each worker the minimum it needs to act without coming back to the host:
 the concrete goal, acceptance criteria, relevant paths, conventions it cannot
-infer, and the checks to run. Quote any upstream interface signature exactly
-when consumers depend on it. Do not pad the request with the whole conversation
-or unrelated files.
+infer, and the checks to run. Declare the decisive checks as
+`required_checks` on the writable call (at most five commands): the harness
+runs them itself after the worker finishes, and any failure turns the result
+incomplete with `stop_reason="checks_failed"` instead of a false completed.
+Quote any upstream interface signature exactly when consumers depend on it.
+When the task touches generated artifacts (migration snapshots, protobuf or
+query-codegen output, generated docs), name the repository's generator
+command, require the worker to run it instead of hand-authoring generated
+files, and make the generator plus its drift check one of the required
+checks. Do not pad the request with the whole conversation or unrelated
+files.
 
 Once a subtask is specified to that bar, delegate it. Do not hold execution on
 the host to exhaustively re-read files or re-derive eligible execution scope.
@@ -207,7 +215,9 @@ Workers aim to finish within a 24-turn primary budget. The default attempt may
 continue through a 24-turn overflow, capped at 48 turns. An explicitly extended
 cohesive attempt may run to 64 turns and receives a finish-only checkpoint at
 turn 40 that stops new exploration. A lower `max_turns` sets a lower attempt
-ceiling.
+ceiling. An attempt that reaches its ceiling closes with a tools-withdrawn
+final-report turn, so even an incomplete result carries the worker's own
+summary of what finished, what remains, and what it last verified.
 
 Never apply or present a result with `status="incomplete"` as finished work.
 Inspect its partial diff and cumulative `input`, `cached_input`, and `output`
@@ -217,6 +227,29 @@ delegation. Resume keeps the original conversation and partial edits. Each
 checkpoint lasts 24 hours, and a newly saved checkpoint refreshes that window.
 A fanout with `status="partial"` may still contain usable completed results;
 integrate those and continue only the unfinished entries.
+
+Writable results carry machine-recorded evidence: `command_runs` records the
+commands that ran, both the worker's own (`source="worker"`) and harness-run
+required checks (`source="required"`), with exit codes and a `stale` flag
+set when the tree changed after that run, whether by later tool edits or by
+a command such as a formatter or generator that itself mutated files. The
+ledger keeps the most recent forty records; `commands_total` counts every
+command, and `command_runs_truncated` marks a trimmed ledger. `edits_total`
+counts tree changes, and `required_checks` summarizes the gate. Trust these records over the summary's claims, for completed results
+too, and judge from the commands themselves which checks truly ran; a
+passing `git status` is not a test run. A result whose final state has no
+fresh passing check is unverified whatever its status; your local checks
+decide whether it lands.
+
+Resume with intent, not momentum. A first resume may continue substantive
+work with the default 24 turns. For closure after a ceiling exit or a
+`checks_failed` result, use `mode="finalize"`: the harness clamps the
+attempt to at most 8 turns, frames it as repair-verify-report only, and the
+original required checks still gate completion; pair it with an
+`instruction` naming the single repair. Once a task has failed two
+attempts, stop granting resumes: apply the partial diff and make the
+bounded repair locally. Every attempt ends with a final report, so a resume
+is never needed just to obtain a summary.
 
 Diff capture can preserve paid work even when delivery is incomplete. If
 `omitted_files` is present, the saved partial patch excludes those oversized
@@ -228,14 +261,14 @@ If `error` and `diff_error` accompany a summary, the result retained its paid
 analysis and usage but the patch could not be captured. Keep the summary as
 context and use a bounded repair or re-delegation for the implementation.
 
-For example:
+For example, a finalization resume:
 
 ```text
 sail_resume(
   delegation_id="<id>",
   task_index=0,
-  additional_turns=24,
-  instruction="Finish the remaining verification.",
+  mode="finalize",
+  instruction="Make only the named repair, run the named checks, and report.",
   wait=true,
   project_path="<active-project-path>"
 )
