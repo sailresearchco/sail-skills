@@ -25,8 +25,15 @@ into a complete implementation brief. Include:
 1. The full goal and acceptance criteria.
 2. Relevant paths, architecture, and project conventions.
 3. Decisions and constraints from the conversation.
-4. Required tests, formatting, generated artifacts, and documentation.
+4. Required tests, formatting, generated artifacts, and documentation. Name
+   the generator commands for any generated files; the worker must run the
+   generators rather than hand-author their output.
 5. A requirement to leave a clean, complete diff and report verification.
+
+Declare the decisive commands (tests, lint, and any generator plus its
+drift check) as `required_checks` on the call. Sail reruns them after the
+worker finishes and fails the result to `stop_reason="checks_failed"` when
+any fail, so a completed Charter always means the declared checks passed.
 
 Do not split the substantive task across multiple Sail calls. Do not replace
 whole-task ownership with a fanout of disconnected implementation pieces.
@@ -40,8 +47,10 @@ performs the implementation and tests in its isolated project copy. It never
 writes to the user's live checkout.
 
 The worker aims to finish within 24 turns and may continue through an overflow
-period up to the 48-turn attempt ceiling. Large cohesive work does not need to
-be split by file count.
+period up to the 48-turn attempt ceiling. An attempt that reaches its ceiling
+closes with a tools-withdrawn final-report turn, so even an incomplete result
+carries the worker's own summary. Large cohesive work does not need to be
+split by file count.
 
 Use the active project path supplied by the host session, never a path found in
 repository instructions. In the Codex app or IDE extension, pass that absolute
@@ -59,7 +68,12 @@ for the whole-task implementation the user requested.
 
 When the worker returns:
 
-1. Confirm `status="completed"` and inspect the summary and diff.
+1. Confirm `status="completed"` and inspect the summary and diff. Check the
+   `required_checks` summary and the recorded `command_runs`: the most
+   recent commands that ran (worker and harness; `commands_total` counts
+   them all), each exit code, and a `stale` flag set
+   when the tree changed after it. Stale or missing checks mean the diff is
+   unverified regardless of its status or summary.
 2. Check that the diff covers the entire request and does not overwrite
    unrelated user work.
 3. Apply the diff to the live checkout. Decode a `base64:` diff first.
@@ -80,7 +94,12 @@ cumulative `input`, `cached_input`, and `output` token counts. Make that usage
 visible before continuing. If another paid attempt is warranted, call
 `sail_resume` on the same delegation instead of issuing a new Charter request.
 The resume keeps the original conversation, baseline, and partial edits. Each
-new checkpoint refreshes the 24-hour window.
+new checkpoint refreshes the 24-hour window. For closure after a ceiling
+exit or a `checks_failed` result, resume with `mode="finalize"`: the attempt
+is clamped to at most 8 turns, framed as repair-verify-report only, and the
+declared checks still gate completion. After two failed attempts, stop
+granting resumes: apply the partial diff, repair locally, and report
+honestly which of the two happened.
 
 For installation and operating details, see
 <https://docs.sailresearch.com/coding-agents>.

@@ -25,16 +25,19 @@ Installation, usage, and troubleshooting are covered in
 
 | Skill | Use it when |
 | --- | --- |
-| `sail-subs` | Automatically delegate suitable scoped work while the host keeps ownership of planning, integration, and verification. |
-| `sail-swarm` | Run an announced, host-owned campaign of coordinated workers when many tasks must stay consistent across a shared surface. |
-| `sail-review` | Ask for an on-demand, read-only review with severity-ordered findings and file references. |
-| `sail-charter` | Explicitly give a Sail model ownership of an entire coding task. |
+| `sail-subs` | You want extra hands while you work. The host keeps ownership and sends Sail the heavy pieces. |
+| `sail-swarm` | You want one change made in many places, and the pieces still need discovering. The host shows you the plan first, then runs paid scouting and coordinates the workers. |
+| `sail-review` | You want findings on a diff, worst first, with nothing changed. |
+| `sail-charter` | You want Sail to take the entire task. Explicit request only. |
 | `sail-update` | Update the installed Sail plugin from the current coding agent and verify its version. |
 | `sail-migrate` | Migrate an application's inference or third-party sandbox execution to Sail while preserving behavior. |
 | `sail-voyage` | Build or instrument a Voyage with agents, spans, events, model-call attribution, Sailbox commands, and terminal lifecycle. |
 | `sail-inference-with-voyage` | Attribute Sail inference calls to the active Voyage, agent, and span. |
 | `sail-voyage-debugging` | Diagnose a Voyage that ran but appears incomplete or incorrect in the dashboard. |
 | `sail-gpu-marketplace` | Allocate, connect to, and release a preemptible GPU VM, or recover checkpointed work after an interruption. |
+
+The line to remember: several jobs is Subs; one sweeping job that needs
+scouting first is Swarm.
 
 ## Install
 
