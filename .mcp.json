@@ -5,8 +5,10 @@
       "args": [
         "--python",
         ">=3.10",
+        "--refresh-package",
+        "sail",
         "--from",
-        "sail[mcp]",
+        "sail[mcp]==0.5.1",
         "python",
         "-I",
         "-m",

@@ -100,9 +100,14 @@ tasks touch the same file. This partition, not luck, is what makes the fanout
 safe. Include the field guide verbatim in every task's `context`, then add
 the task's own goal, acceptance criteria, owned paths, and checks to run.
 Declare each task's decisive checks as its `required_checks` so the harness
-gates that partition's completion on them. State in each request that edits
-must stay within the task's owned files. Workers are not sandboxed to their
-partition, so the host verifies it at merge time.
+gates that partition's completion on them. Pass deterministic dependency
+restoration in `setup_commands`, which run before turn one. Each request must
+also carry the repository's package manager, exact narrow commands,
+unavailable tools, artifact hazards, and the Sail Subs environment escape
+hatch. State in each request that edits must stay within the task's owned
+files. Workers are not sandboxed to their partition, so the host verifies it
+at merge time. If a partition needs a new fake, fixture, or harness, establish
+it in an earlier wave instead of asking the worker to invent one.
 
 Topology follows the `sail-subs` rules. Independent partitions form one
 fanout. When one interface must land before its consumers can build against
@@ -138,6 +143,8 @@ The host is the merge referee:
    Prefer `sail_resume` when a task has a usable checkpoint, switching to a
    `mode="finalize"` resume after a ceiling or `checks_failed` exit; fall
    back locally as a bounded, transparent repair when it does not.
+6. Record each round's final top-level `tokens` aggregate for the campaign
+   report. Count a resumed task only in its latest cumulative result.
 
 For a campaign that warrants it, add a read-only verification fanout over the
 merged result, giving each task a distinct lens such as correctness against
@@ -145,10 +152,13 @@ the field guide, missed call sites, or broken invariants. This composes the
 `sail-review` shape; it is optional and should be announced with the campaign
 plan if intended.
 
-Report the campaign to the user with one factual usage line totaled across
-all rounds, for example "Sail ran 9.4M tokens across 14 workers in 3
-rounds." Include what recon found, what was implemented, how the merge was
-verified, and any partition that fell back to host work.
+The final user-facing campaign report must include one factual usage line
+totaled across all rounds. Do this for every swarm; there is no minimum token
+threshold. Add each delegation's final `tokens.total` once, where total means
+input plus output and `cached_input` is already part of input. For example:
+"Sail usage: 9.4M tokens across 14 workers in 3 rounds." Also include what
+recon found, what was implemented, how the merge was verified, and any
+partition that fell back to host work.
 
 ## Project path
 

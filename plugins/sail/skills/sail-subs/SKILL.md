@@ -53,11 +53,30 @@ Sail ownership of the whole user request. That requires an explicit
 
 Give each worker the minimum it needs to act without coming back to the host:
 the concrete goal, acceptance criteria, relevant paths, conventions it cannot
-infer, and the checks to run. Declare the decisive checks as
-`required_checks` on the writable call (at most five commands): the harness
-runs them itself after the worker finishes, and any failure turns the result
-incomplete with `stop_reason="checks_failed"` instead of a false completed.
-Quote any upstream interface signature exactly when consumers depend on it.
+infer, and the checks to run. Every writable task must declare its decisive
+checks as `required_checks` (at most five commands): the harness runs them
+after the worker finishes, and any failure turns the result incomplete with
+`stop_reason="checks_failed"` instead of a false completed. When a fresh
+snapshot needs dependencies, pass deterministic restoration commands as
+`setup_commands` (at most three commands). They run before turn one, record
+`source="setup"`, and stop a broken environment before any model tokens are
+spent. Quote any upstream interface signature exactly when consumers depend
+on it.
+
+Every writable request also needs a short environment note: name the package
+manager, the exact narrow test/build commands, tools that are unavailable, and
+artifact hazards. Include this escape hatch verbatim: "if the environment
+fights you, do NOT burn turns on it — make the change, say tests were not run,
+and return your diff." Do not delegate work that requires the worker to invent
+a new fake, fixture, or test harness. The host must establish that scaffolding
+first, name an existing helper, or remove that test from the task. Put
+essential code and tests before optional docs or other deliverables that can
+move to their own task.
+
+Prompt size and file count are not sizing rules. Large cohesive tasks can
+finish when their interfaces and environment are known; a smaller ambiguous
+test request can exhaust the same budget.
+
 When the task touches generated artifacts (migration snapshots, protobuf or
 query-codegen output, generated docs), name the repository's generator
 command, require the worker to run it instead of hand-authoring generated
@@ -210,6 +229,8 @@ integration, review, and final verification, and must:
    user's current work.
 4. Run the relevant checks locally.
 5. Integrate the result with the rest of the task and report the final outcome.
+6. Include the Sail token-usage line described below in the final user-facing
+   response.
 
 Workers aim to finish within a 24-turn primary budget. The default attempt may
 continue through a 24-turn overflow, capped at 48 turns. An explicitly extended
@@ -225,18 +246,25 @@ token counts. If `resume_available=true` and more Sail work is appropriate,
 call `sail_resume` deliberately on that task instead of starting a fresh
 delegation. Resume keeps the original conversation and partial edits. Each
 checkpoint lasts 24 hours, and a newly saved checkpoint refreshes that window.
+A resume reruns the task's original setup by default. If the partial patch
+makes that setup invalid, pass `setup_commands=[]` to skip it or pass up to
+three replacement commands. The override applies only to that resume.
+If resumed setup fails, the previous summary, partial patch, cumulative usage,
+and checkpoint remain available.
 A fanout with `status="partial"` may still contain usable completed results;
 integrate those and continue only the unfinished entries.
 
-Writable results carry machine-recorded evidence: `command_runs` records the
-commands that ran, both the worker's own (`source="worker"`) and harness-run
-required checks (`source="required"`), with exit codes and a `stale` flag
-set when the tree changed after that run, whether by later tool edits or by
-a command such as a formatter or generator that itself mutated files. The
-ledger keeps the most recent forty records; `commands_total` counts every
-command, and `command_runs_truncated` marks a trimmed ledger. `edits_total`
-counts tree changes, and `required_checks` summarizes the gate. Trust these records over the summary's claims, for completed results
-too, and judge from the commands themselves which checks truly ran; a
+Writable results carry machine-recorded evidence: `command_runs` records
+pre-turn setup (`source="setup"`), the worker's own commands
+(`source="worker"`), and harness-run required checks (`source="required"`).
+Each carries an exit code and a `stale` flag set when the tree changed after
+that run, whether by later tool edits or by a command such as a formatter or
+generator that itself mutated files. The ledger keeps the most recent forty
+records; `commands_total` counts every command, and
+`command_runs_truncated` marks a trimmed ledger. `edits_total` counts tree
+changes, and `required_checks` summarizes the gate. Trust these records over
+the summary's claims, for completed results too, and judge from the commands
+themselves which checks truly ran; a
 passing `git status` is not a test run. A result whose final state has no
 fresh passing check is unverified whatever its status; your local checks
 decide whether it lands.
@@ -274,11 +302,17 @@ sail_resume(
 )
 ```
 
-When reporting a sizable run to the user (a fanout, or a single delegation
-near 100k tokens or more), include one factual usage line built from the
-result, for example "Sail ran 1.6M tokens across 5 workers." Total the
-per-task token counts for a fanout. This shows how much execution ran on Sail
-rather than on the host.
+## Report Sail usage
+
+After any paid Sail work, the final user-facing response must include one
+factual usage line. Do this for every run; there is no minimum token threshold.
+Use the response's top-level `tokens.total`, which equals input plus output.
+`cached_input` is already part of input, so never add it again.
+
+For example: "Sail usage: 1.6M tokens (1.55M input, including 1.2M cached;
+50K output) across 5 workers." For multiple delegations or waves, add each
+delegation's final aggregate once. A resumed task's latest result is cumulative,
+so adding its earlier attempt would double-count it.
 
 If a diff starts with `base64:`, decode the remainder before applying it with
 `git apply`.

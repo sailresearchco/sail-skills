@@ -17,6 +17,10 @@ The server exposes six tools: `sail_delegate`, `sail_fanout`, `sail_await`,
 a 24-turn primary budget, with overflow capped at 48 turns per attempt. If an
 attempt stops incomplete, Sail saves its conversation and partial patch for 24
 hours so the coding agent can continue the same work with `sail_resume`.
+Writable calls can also declare `setup_commands`, which restore dependencies
+inside the isolated project copy before the worker's first model turn, and
+`required_checks`, which Sail runs after the worker finishes to gate
+completion.
 
 Installation, usage, and troubleshooting are covered in
 [Sail for coding agents](https://docs.sailresearch.com/coding-agents).
