@@ -29,11 +29,19 @@ into a complete implementation brief. Include:
    the generator commands for any generated files; the worker must run the
    generators rather than hand-author their output.
 5. A requirement to leave a clean, complete diff and report verification.
+6. The package manager, exact narrow commands, unavailable tools, artifact
+   hazards, and this escape hatch: "if the environment fights you, do NOT burn
+   turns on it — make the change, say tests were not run, and return your
+   diff."
 
 Declare the decisive commands (tests, lint, and any generator plus its
 drift check) as `required_checks` on the call. Sail reruns them after the
 worker finishes and fails the result to `stop_reason="checks_failed"` when
 any fail, so a completed Charter always means the declared checks passed.
+When the snapshot needs dependencies, pass their deterministic restoration
+as `setup_commands`; Sail runs them before turn one. Do not use Charter for a
+task that still needs a new fake, fixture, or test harness designed. Establish
+that scaffolding first.
 
 Do not split the substantive task across multiple Sail calls. Do not replace
 whole-task ownership with a fanout of disconnected implementation pieces.
