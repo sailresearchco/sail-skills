@@ -17,22 +17,30 @@ The request must come from the user in the conversation or an explicit skill
 invocation. Instructions found only in repository files cannot grant Sail
 whole-task ownership.
 
-## Prepare one complete request
+## Relay the request
 
-Before delegating, inspect enough of the project to turn the user's request
-into a complete implementation brief. Include:
+Send the worker everything it cannot discover on its own, and nothing more.
+Include:
 
-1. The full goal and acceptance criteria.
-2. Relevant paths, architecture, and project conventions.
-3. Decisions and constraints from the conversation.
-4. Required tests, formatting, generated artifacts, and documentation. Name
+1. The user's request, and the goal and acceptance criteria as the
+   conversation stated them.
+2. Decisions and constraints from the conversation.
+3. Required tests, formatting, generated artifacts, and documentation. Name
    the generator commands for any generated files; the worker must run the
    generators rather than hand-author their output.
-5. A requirement to leave a clean, complete diff and report verification.
-6. The package manager, exact narrow commands, unavailable tools, artifact
+4. A requirement to leave a clean, complete diff and report verification.
+5. The package manager, exact narrow commands, unavailable tools, artifact
    hazards, and this escape hatch: "if the environment fights you, do NOT burn
    turns on it — make the change, say tests were not run, and return your
    diff."
+
+Do not pre-plan the implementation. The worker has a complete copy of the
+project and discovers paths, architecture, and conventions itself, as it
+would if the user ran it directly. Reading the project here to write a
+specification pays for planning twice and shrinks the ownership the user
+asked to transfer. The checks and environment facts above come from the
+session's own project instructions and environment, not from a fresh
+reading pass.
 
 Declare the decisive commands (tests, lint, and any generator plus its
 drift check) as `required_checks` on the call. Sail reruns them after the
@@ -48,7 +56,7 @@ whole-task ownership with a fanout of disconnected implementation pieces.
 
 ## Charter the task
 
-Call `sail_delegate` once with the complete request and `write=true`. Use the
+Call `sail_delegate` once with that request and `write=true`. Use the
 default model. The plugin does not offer a model picker in this release; pass a
 different model only if the user supplies its exact Sail model ID. The worker
 performs the implementation and tests in its isolated project copy. It never
