@@ -98,25 +98,35 @@ enters the guide.
 Partition implementation tasks by the ownership map so that no two writable
 tasks touch the same file. This partition, not luck, is what makes the fanout
 safe. Include the field guide verbatim in every task's `context`, then add
-the task's own goal, acceptance criteria, owned paths, and checks to run.
-Declare each task's decisive checks as its `required_checks` so the harness
-gates that partition's completion on them. Pass deterministic dependency
-restoration in `setup_commands`, which run before turn one. Each request must
-also carry the repository's package manager, exact narrow commands,
-unavailable tools, artifact hazards, and the Sail Subs environment escape
-hatch. State in each request that edits must stay within the task's owned
-files. Workers are not sandboxed to their partition, so the host verifies it
-at merge time. If a partition needs a new fake, fixture, or harness, establish
-it in an earlier wave instead of asking the worker to invent one.
+the task's own goal, acceptance criteria, and owned paths. The verbatim guide
+is a deliberate exception to the Sail Subs preference for minimal context:
+campaign consistency depends on every worker holding identical conventions.
+Keep the guide itself synthesized signatures and invariants, not raw recon
+transcripts. Declare each partition's decisive checks as its
+`required_checks`; the harness hands them to the worker as immutable
+acceptance criteria and reruns the originals on the final tree, so do not
+repeat the commands in the request prose. Keep each entry one self-contained
+invocation (a leading `cd path && command` is allowed). Pass deterministic
+dependency restoration in `setup_commands`, which run before turn one and
+stop the task on failure. Each request must still name the repository's
+package manager, unavailable tools, and artifact hazards, and state that
+edits must stay within the task's owned files. Workers may repair a broken
+environment but cannot replace the gate; a failure that looks like a broken
+invocation rather than a broken patch returns `gate_suspect` with the patch
+and checkpoint preserved. Workers are not sandboxed to their partition, so
+the host verifies it at merge time. If a partition needs a new fake, fixture,
+or harness, establish it in an earlier wave instead of asking the worker to
+invent one.
 
 Topology follows the `sail-subs` rules. Independent partitions form one
 fanout. When one interface must land before its consumers can build against
 it, that interface is an earlier wave, integrated before the consumer fanout
-starts, with its exact signature quoted in each consumer request. Keep the
-default `max_turns=48`. A fanout's `max_turns` applies to every task in the
-call, so when one cohesive partition needs the explicit 64-turn ceiling, run
-it as its own `sail_delegate` call or its own wave instead of raising the
-whole fanout's ceiling.
+starts, with its exact signature quoted in each consumer request. Omit
+`max_turns` normally for the hard 48-turn per-attempt default; every
+explicit value is a hard ceiling too. A fanout's `max_turns` applies to
+every task in the call, so when one cohesive partition warrants the explicit
+64-turn ceiling, run it as its own `sail_delegate` call or its own wave
+instead of raising the whole fanout's ceiling.
 
 Wait per the `sail-subs` rules. With no independent host work, call with
 `wait=true`. Otherwise start with `wait=false`, do only non-overlapping host
@@ -133,16 +143,20 @@ The host is the merge referee:
    out-of-scope edits, deferring to the file's assigned owner.
 2. Apply diffs wave by wave, in dependency order, resolving conflicts in
    favor of the user's current work.
-3. Run the project's checks after each wave, not only at the end. Each
-   task's recorded `command_runs` show what ran (worker and harness) and
-   whether later changes made those runs stale, but only your own runs
-   verify the merged tree.
+3. Run the project's checks after each wave, not only at the end. This is
+   deliberately stricter than the Sail Subs single final acceptance run:
+   later waves build on the merged live tree, so a wave must be verified
+   before anything is built on it. Each task's recorded `command_runs` show
+   what ran (worker and harness) and whether later changes made those runs
+   stale, but only your own runs verify the merged tree.
 4. Check results against the field guide, since consistency with it was the
    point of the campaign.
 5. Handle `status="incomplete"` and failed entries by the `sail-subs` rules.
    Prefer `sail_resume` when a task has a usable checkpoint, switching to a
-   `mode="finalize"` resume after a ceiling or `checks_failed` exit; fall
-   back locally as a bounded, transparent repair when it does not.
+   `mode="finalize"` resume after a ceiling or genuine `checks_failed` exit.
+   Treat `gate_suspect` as a possibly broken check invocation, not a broken
+   patch: verify the invocation before spending paid turns. Fall back
+   locally as a bounded, transparent repair when no checkpoint is usable.
 6. Record each round's final top-level `tokens` aggregate for the campaign
    report. Count a resumed task only in its latest cumulative result.
 

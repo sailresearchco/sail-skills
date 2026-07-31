@@ -141,13 +141,14 @@ response = client.responses.create(
   Responses and Chat Completions clients.
 - For the Anthropic SDK, use the bare host `https://api.sailresearch.com`.
   The SDK appends `/v1/messages`, so a `/v1` base URL incorrectly resolves to
-  `/v1/v1/messages`. In Python, pass the bare host as `base_url` and
-  `SAIL_API_KEY` as `auth_token`, not `api_key`. In TypeScript, use `baseURL`
-  and `authToken`, not `apiKey`. These options send the supported bearer
-  authorization header. For framework or environment-only configuration, set
-  `ANTHROPIC_BASE_URL=https://api.sailresearch.com` and set
-  `ANTHROPIC_AUTH_TOKEN` from `SAIL_API_KEY`; do not use `ANTHROPIC_API_KEY`,
-  which selects the unsupported `x-api-key` header. The Python and TypeScript
+  `/v1/v1/messages`. Sail accepts both Anthropic's `x-api-key` header and a
+  bearer authorization header. Preserve the credential style already used by
+  the application: `api_key` / `apiKey` / `ANTHROPIC_API_KEY` sends
+  `x-api-key`, while `auth_token` / `authToken` /
+  `ANTHROPIC_AUTH_TOKEN` sends bearer authorization. Set only one credential
+  style. If both headers are present, bearer authorization takes precedence.
+  For framework or environment-only configuration, also set
+  `ANTHROPIC_BASE_URL=https://api.sailresearch.com`. The Python and TypeScript
   SDKs' `metadata` types do not include Sail's `completion_window` extension;
   cast only the `metadata` field, with a comment, and note the cast in the
   report.
@@ -175,7 +176,7 @@ from anthropic.types import MetadataParam
 
 client = Anthropic(
     base_url="https://api.sailresearch.com",
-    auth_token=os.environ["SAIL_API_KEY"],
+    api_key=os.environ["SAIL_API_KEY"],
 )
 
 message = client.messages.create(
