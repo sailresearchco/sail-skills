@@ -1,15 +1,16 @@
 ---
 name: sail-inference-with-voyage
-description: Use when an instrumented Voyage calls Sail inference (the OpenAI-compatible Responses / Chat Completions API) and you need each model call — the LLM span — attributed to the active agent/span in the dashboard. Covers automatic Voyage/span/agent header propagation, background vs synchronous mode, wrapping a raw OpenAI client, and the immutable first-association-wins response_id contract. Not for authoring the Voyage itself (see sail-voyage) — only the inference-call leg.
+description: Use when an instrumented Voyage calls Sail inference through Responses, Chat Completions, or Anthropic Messages and you need each model call — the LLM span — attributed to the active agent/span in the dashboard. Covers automatic Voyage/span/agent header propagation, background vs synchronous mode, wrapping a raw OpenAI client, adding per-request headers to an Anthropic client, and the immutable first-association-wins response_id contract. Not for authoring the Voyage itself (see sail-voyage) — only the inference-call leg.
 ---
 
 # Sail Inference With Voyage
 
 Use this pattern when a Voyage-instrumented process calls Sail inference
-(Responses API or Chat Completions). Calls routed through the SDK's
-`sail.inference.*` helpers automatically attach Voyage/span/agent headers
-so model-call rows appear in the dashboard's Native Model Calls panel,
-scoped to the right agent.
+through Responses, Chat Completions, or Anthropic Messages. Calls routed
+through the SDK's `sail.inference.*` helpers automatically attach
+Voyage/span/agent headers. Raw Anthropic clients attach the same headers per
+request. Both paths make model-call rows appear in the dashboard's Native
+Model Calls panel, scoped to the right agent.
 
 ## When to use
 
@@ -18,6 +19,8 @@ scoped to the right agent.
   `sail.voyage.run(...)` (or `create(...)`) context.
 - Wrapping a raw OpenAI client when you can't switch to the SDK helper
   but still want Voyage attribution.
+- Calling `client.messages.create(...)` through an Anthropic client pointed at
+  Sail while preserving Voyage attribution.
 
 If your Voyage doesn't make inference calls, you don't need this skill.
 
@@ -129,6 +132,33 @@ unattributed. It is idempotent, supports `AsyncOpenAI` (the auto-span
 covers the awaited request), and follows the current Voyage
 per call (pass `voyage=` to pin one).
 
+## Attributing Anthropic Messages
+
+The Anthropic client does not use `wrap_openai`. Point it at Sail and attach
+the current Voyage headers to each request:
+
+```python
+from anthropic import Anthropic
+import sail
+
+cfg = sail.Config.from_env()
+client = Anthropic(api_key=cfg.api_key, base_url=cfg.api_url.rstrip("/"))
+
+with sail.voyage.run(name="messages-client", version=1) as voyage:
+    with voyage.agent("Reviewer"):
+        with voyage.span("call"):
+            message = client.messages.create(
+                model="zai-org/GLM-5.1-FP8",
+                max_tokens=256,
+                messages=[{"role": "user", "content": "Review this change."}],
+                extra_headers=sail.voyage.headers(),
+            )
+```
+
+Compute `sail.voyage.headers()` inside the request call. Raw Anthropic clients
+do not synthesize auto-spans, so use an explicit span when span attribution
+matters.
+
 For any non-OpenAI-style HTTP client, attach
 `sail.voyage.headers()` yourself — it carries the full attribution context
 (voyage id plus the span and agent active at the moment you call it).
@@ -146,7 +176,8 @@ mistake unrepresentable; prefer it whenever the client is OpenAI-style.)
   Voyage (`sail.voyage.run(...)`).
 - **Baking `sail.voyage.headers()` into `default_headers` at client
   construction.** That snapshots one span/agent context onto every later
-  call. Pass `extra_headers=sail.voyage.headers()` per call instead.
+  call. Pass `extra_headers=sail.voyage.headers()` per call instead, including
+  for Anthropic Messages.
 - **Reusing a `response_id` across Voyages.** The first attribution wins
   forever; subsequent calls are effectively orphaned from a Voyage
   perspective. Don't try to "fix" an attribution mistake by re-calling
@@ -171,7 +202,8 @@ Dashboard checklist:
 - Overview → Native Model Calls panel: `Scoped > 0`, `Unscoped = 0`,
   `Missing span = 0`.
 - Execution Trace and Waterfall: model rows reach terminal status
-  (`responses · completed`, not `in_progress`). If they're stuck
+  (`responses · completed` or `messages · completed`, not `in_progress`). If
+  they're stuck
   `in_progress`, see
   [sail-voyage-debugging section 4](../sail-voyage-debugging/SKILL.md).
 - Waterfall model rows render solid, not striped.

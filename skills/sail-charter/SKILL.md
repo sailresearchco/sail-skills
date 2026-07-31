@@ -29,10 +29,10 @@ Include:
    the generator commands for any generated files; the worker must run the
    generators rather than hand-author their output.
 4. A requirement to leave a clean, complete diff and report verification.
-5. The package manager, exact narrow commands, unavailable tools, artifact
-   hazards, and this escape hatch: "if the environment fights you, do NOT burn
-   turns on it — make the change, say tests were not run, and return your
-   diff."
+5. The package manager, unavailable tools, and artifact hazards. Do not
+   restate the check commands in prose: the worker receives its
+   `required_checks` as immutable acceptance criteria, and it may repair a
+   broken environment but cannot replace that gate.
 
 Do not pre-plan the implementation. The worker has a complete copy of the
 project and discovers paths, architecture, and conventions itself, as it
@@ -43,9 +43,13 @@ session's own project instructions and environment, not from a fresh
 reading pass.
 
 Declare the decisive commands (tests, lint, and any generator plus its
-drift check) as `required_checks` on the call. Sail reruns them after the
-worker finishes and fails the result to `stop_reason="checks_failed"` when
-any fail, so a completed Charter always means the declared checks passed.
+drift check) as `required_checks` on the call. Keep each entry one
+self-contained invocation (a leading `cd path && command` is allowed). Sail
+reruns the original commands on the worker's final tree and fails the result
+to `stop_reason="checks_failed"` when any fail, so a completed Charter
+always means the declared checks passed. A failure whose evidence points at
+a broken invocation rather than a broken patch reports `gate_suspect` with
+the patch and checkpoint preserved.
 When the snapshot needs dependencies, pass their deterministic restoration
 as `setup_commands`; Sail runs them before turn one. Do not use Charter for a
 task that still needs a new fake, fixture, or test harness designed. Establish
