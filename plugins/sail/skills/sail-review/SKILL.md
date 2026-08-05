@@ -1,6 +1,6 @@
 ---
 name: sail-review
-description: Use for an on-demand, read-only review when the user asks for code review, security review, bug finding, or a second opinion on a diff, base, path, or focus area. Return severity-ordered findings with file references and do not change the working tree. For implementation subtasks use sail-subs. For explicit whole-task ownership use sail-charter.
+description: Use for an on-demand, read-only review when the user asks for code review, security review, bug finding, or a second opinion on a diff, base, path, or focus area. Return severity-ordered findings with file references and do not change the working tree. For implementation subtasks use sail-subs.
 ---
 
 # Sail Review
