@@ -8,7 +8,7 @@
         "--refresh-package",
         "sail",
         "--from",
-        "sail[mcp]==0.5.7",
+        "sail[mcp]==0.5.9",
         "python",
         "-I",
         "-m",
