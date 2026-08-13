@@ -14,9 +14,10 @@ plugin does not present a model picker yet.
 
 The server exposes six tools: `sail_delegate`, `sail_fanout`, `sail_await`,
 `sail_collect`, `sail_resume`, and `sail_cancel`. Workers aim to finish within
-a 24-turn primary budget, with overflow capped at 48 turns per attempt. If an
-attempt stops incomplete, Sail saves its conversation and partial patch for 24
-hours so the coding agent can continue the same work with `sail_resume`.
+a 24-turn primary budget, with overflow capped at 48 turns per attempt. An
+attempt that reaches its turn limit can save its conversation and partial patch
+for 24 hours so the coding agent can continue with `sail_resume`. Cancellation
+is terminal but preserves partial work captured during safe shutdown.
 Writable calls can also declare `setup_commands`, which restore dependencies
 inside the isolated project copy before the worker's first model turn, and
 `required_checks`, which Sail runs after the worker finishes to gate
