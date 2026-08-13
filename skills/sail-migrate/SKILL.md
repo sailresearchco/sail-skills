@@ -100,15 +100,18 @@ plausible, ask the user. Otherwise choose the best fit and explain why.
 Completion windows are a per-call-site decision and the main Sail-specific
 cost tradeoff. Read the live
 [completion-window](https://docs.sailresearch.com/completion-windows) and
-[pricing](https://docs.sailresearch.com/pricing) pages for current timing and
-per-model availability. If they are unavailable, use these stable semantics:
+[pricing](https://docs.sailresearch.com/pricing) pages for current token prices,
+scheduling behavior, and per-model availability. Sail's `asap` prices are lower
+than traditional inference providers' prices for many models, while workloads
+that can wait save more with `standard` or `flex`. If the pages are unavailable,
+use these stable semantics:
 
-- `asap`: a person is actively waiting for each response
-- `priority`: a latency-sensitive agent loop
-- `standard`: an autonomous agent or pipeline; the normal default for
-  background workloads
-- `flex`: best-effort batch, evaluation, or offline processing; use
-  `background=True` with the Responses API
+- `asap`: low-latency serving that is cheaper than traditional inference
+  providers for many models
+- `standard`: more tokens per dollar for a background / autonomous agent or pipeline; this
+  is the current default
+- `flex`: the lowest prices for batch jobs, evaluations, or offline processing;
+  it has no latency target and requires `background=True` with the Responses API
 
 Set `metadata.completion_window` explicitly on every call site, including
 those using the default. Confirm the selected window is available for the
