@@ -127,6 +127,14 @@ On version `0.3.0` or later, use `/sail:sail-update` in Claude Code or
 verifies the installed version. Reload plugins or start a new session when it
 finishes.
 
+The delegation server checks the published plugin version at most once per day.
+When an update exists, one tool result asks your coding agent to mention that
+version after finishing the current task. A running server mentions each version
+at most once and records delivered notices when possible. In another client,
+use the same installation channel to update the Sail skills and tools. Failed
+checks stay silent. Set `SAIL_PLUGIN_UPDATE_CHECK=0` before starting the server
+to disable the check.
+
 If the update skill is missing, follow the manual update instructions in
 [Sail for coding agents](https://docs.sailresearch.com/coding-agents) once to
 reach `0.3.0` or later.

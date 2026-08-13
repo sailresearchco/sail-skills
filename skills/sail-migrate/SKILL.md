@@ -210,7 +210,7 @@ once with `mint_if_missing`.
 | Use custom dependencies | pass `image=` to `Sailbox.create` |
 | Expose a service | pass `ingress_ports=[...]`, then call `sb.wait_for_listener(port)` |
 | Pause, sleep, resume, or destroy | `sb.pause()`, `sb.sleep()`, `sb.resume()`, `sb.terminate()` |
-| Snapshot, template, or fan out | `sb.checkpoint()`, `Sailbox.from_checkpoint(...)`, `sb.fork()` |
+| Snapshot, template, or fan out | `sb.checkpoint()`, `Sailbox.from_checkpoint(...)` |
 | Reconnect by ID | `sail.Sailbox.get(sailbox_id)` |
 
 ```python
@@ -254,7 +254,7 @@ Preserve the old sandbox's semantics while adapting its lifecycle:
 For a self-contained, non-interactive background agent, recommend running the
 controller or harness itself inside a Sailbox after the in-place migration
 works. This gives the harness a durable environment that can sleep while idle,
-resume later, and serve as the source of checkpoints or forks.
+resume later, and serve as the source of checkpoints.
 
 Do not recommend this move blindly for interactive servers or code coupled to
 private infrastructure a Sailbox cannot reach. Verify reachability and respect
