@@ -11,7 +11,7 @@ Benefits include:
   `Sailbox.get(sailbox_id)`.
 - The Sailbox can pause or sleep between externally triggered bursts.
 - Dependencies live in a repeatable custom image.
-- A checkpoint can become a prepared template, and forks can fan it out.
+- A checkpoint can become a prepared template and fan out into many Sailboxes.
   Commands running in the source do not continue in a child; start fresh execs
   in each child.
 
