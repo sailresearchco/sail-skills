@@ -103,13 +103,14 @@ cost tradeoff. Read the live
 [pricing](https://docs.sailresearch.com/pricing) pages for current token prices,
 scheduling behavior, and per-model availability. Sail's `asap` prices are lower
 than traditional inference providers' prices for many models, while workloads
-that can wait save more with `standard` or `flex`. If the pages are unavailable,
+that can wait save more with `balanced` or `flex`. If the pages are unavailable,
 use these stable semantics:
 
 - `asap`: low-latency serving that is cheaper than traditional inference
   providers for many models
-- `standard`: more tokens per dollar for a background / autonomous agent or pipeline; this
-  is the current default
+- `balanced`: more tokens per dollar for background or autonomous agents and
+  pipelines; this is the default window when the field is not set (per request).
+  `standard` is a legacy name for the same window and keeps working.
 - `flex`: the lowest prices for batch jobs, evaluations, or offline processing;
   it has no latency target and requires `background=True` with the Responses API
 
@@ -135,7 +136,7 @@ existing_metadata = {}  # reuse the metadata this call site already sends
 
 response = client.responses.create(
     model="<model chosen in step 3>",
-    metadata={**existing_metadata, "completion_window": "standard"},
+    metadata={**existing_metadata, "completion_window": "balanced"},
     input=...,  # unchanged
 )
 ```
@@ -185,7 +186,7 @@ client = Anthropic(
 message = client.messages.create(
     model="<model chosen in step 3>",
     # The Anthropic SDK type omits Sail's completion_window extension.
-    metadata=cast(MetadataParam, {"completion_window": "standard"}),
+    metadata=cast(MetadataParam, {"completion_window": "balanced"}),
     max_tokens=...,
     messages=...,  # unchanged
 )

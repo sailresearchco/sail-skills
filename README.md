@@ -8,9 +8,15 @@ building observable agents, and using preemptible GPU compute.
 
 The plugin uses standard `SKILL.md` folders and one `sail-delegate` MCP server.
 The same skill payload and server launch command ship for Claude Code and local
-Codex sessions. GLM-5.2 is the only curated worker choice in this release. The
-delegation tools keep an optional model argument for future additions, but the
-plugin does not present a model picker yet.
+Codex sessions. GLM-5.2 is the main worker model. The swarm skill runs its
+read-only recon round on the much cheaper DeepSeek V4 Flash 0731, and you can
+ask
+your coding agent to use the cheaper worker for other delegated tasks. When an
+organization's placement constraints cannot reach the cheaper model, such
+delegations fall back to GLM-5.2 automatically and the result records the
+model that served. The delegation tools keep an optional model argument, which
+the skills use for this routing, and the plugin does not present a model
+picker.
 
 The server exposes six tools: `sail_delegate`, `sail_fanout`, `sail_await`,
 `sail_collect`, `sail_resume`, and `sail_cancel`. Workers aim to finish within

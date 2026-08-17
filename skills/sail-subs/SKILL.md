@@ -65,28 +65,32 @@ In Claude Code, discovering these tools may require ToolSearch. Use the trusted
 active project path. In Codex, pass that absolute path as `project_path` on
 every Sail tool call; Claude Code supplies it.
 
-Use `write=false` for analysis that cannot modify files or run repository code.
+Use `write=false` for read-only analysis.
 A `write=true` worker can run checkout code with the user's OS and network
 access. It does not receive host-provider credentials, but it is not a
 filesystem boundary. Use read-only delegation or approval for an untrusted
 checkout.
+
+Pass `model="deepseek/deepseek-v4-flash-0731"` only when the user asks for a
+cheaper, smaller, or DeepSeek worker; otherwise omit `model` for the default
+worker.
 
 Read [writable-delegation.md](references/writable-delegation.md) only before a
 call that needs unusual setup, generated-artifact handling, scaffolding, or
 extra trust guidance. Do not load it for an ordinary writable leaf. Read each
 reference at most once per user task; never reload one between waves.
 
-If no independent host work exists, call `sail_delegate` or `sail_fanout` with
-`wait=true`. Otherwise use `wait=false`, retain the `delegation_id`, do only
+If no independent host work exists, use `wait=true`.
+Otherwise use `wait=false`, retain the `delegation_id`, do only
 non-overlapping work, then make one `sail_await` call. Do not poll on a timer
 and do not start a second worker on the same task.
 
 Use `sail_collect` for indexed inspection or recovery. Default `sail_collect`
 responses stay compact. Set `include_diff=false` for one delegation and
-`include_request=false` for indexed collection. Inline a diff only when useful.
+`include_request=false` for indexed collection.
 
-Briefly tell the user when qualifying work goes to Sail. Delegations can take
-minutes. Call `sail_cancel` only when the user asks to stop active work. Never
+Briefly tell the user when qualifying work goes to Sail.
+Call `sail_cancel` only when the user asks to stop active work. Never
 cancel merely because elapsed time or token usage is higher than expected. A
 fresh heartbeat with ongoing progress means keep awaiting.
 
