@@ -107,16 +107,22 @@ that can wait save more with `balanced` or `flex`. If the pages are unavailable,
 use these stable semantics:
 
 - `asap`: low-latency serving that is cheaper than traditional inference
-  providers for many models
+  providers
 - `balanced`: more tokens per dollar for background or autonomous agents and
-  pipelines; this is the default window when the field is not set (per request).
-  `standard` is a legacy name for the same window and keeps working.
+  pipelines
 - `flex`: the lowest prices for batch jobs, evaluations, or offline processing;
   it has no latency target and requires `background=True` with the Responses API
 
-Set `metadata.completion_window` explicitly on every call site, including
-those using the default. Confirm the selected window is available for the
-chosen model. Ask if the workload's latency tolerance is unclear.
+Leave `metadata.completion_window` unset for the default low-latency behavior:
+Sail picks the fastest published window compatible with the model and request.
+Synchronous and non-background requests never fall back to `flex`; background
+requests may. LoRA requests skip `asap`. If no compatible window exists, Sail
+rejects the request before task creation. Set `completion_window` explicitly
+for latency-tolerant work, normally `balanced` or `flex`. Pin `asap` only when
+the request must fail instead of using a fallback window. An explicit window the
+model does not support is an error: explicit values never fall back. Confirm
+the selected window is available for the chosen model. Some models are
+flex-only. Ask if the workload's latency tolerance is unclear.
 
 ## Step 5: Migrate inference in place
 
@@ -133,10 +139,12 @@ client = OpenAI(
 )
 
 existing_metadata = {}  # reuse the metadata this call site already sends
+# Leave completion_window unset for the default low-latency behavior.
+# Set it to opt into a longer window or pin an exact window.
 
 response = client.responses.create(
     model="<model chosen in step 3>",
-    metadata={**existing_metadata, "completion_window": "balanced"},
+    metadata={**existing_metadata},  # completion_window omitted by default
     input=...,  # unchanged
 )
 ```
@@ -157,9 +165,11 @@ response = client.responses.create(
   cast only the `metadata` field, with a comment, and note the cast in the
   report.
 - Read `SAIL_API_KEY` from the environment.
-- Set the model and `metadata.completion_window` selected in steps 3 and 4.
-  Preserve every metadata entry the call site already sends; add
-  `completion_window` to that object instead of replacing it.
+- Set the model selected in step 3. Leave `metadata.completion_window` unset
+  for the default low-latency behavior. Set it to opt into a longer window or
+  pin an exact window.
+  Preserve every metadata entry the call site already sends; when you add
+  `completion_window`, add it to that object instead of replacing it.
 - Use `background=True` for `flex` and very long-running Responses requests.
   Poll the returned response ID. Background requests cannot stream.
 - Keep the request shape already in use. Do not rewrite Chat Completions to
@@ -169,14 +179,13 @@ response = client.responses.create(
 - Do not change prompts, tools, or business logic.
 
 For example, preserve an existing Messages request while changing only its
-client configuration, model, and completion window:
+client configuration and model, and opting into a completion window when the
+workload can wait:
 
 ```python
 import os
-from typing import cast
 
 from anthropic import Anthropic
-from anthropic.types import MetadataParam
 
 client = Anthropic(
     base_url="https://api.sailresearch.com",
@@ -185,8 +194,7 @@ client = Anthropic(
 
 message = client.messages.create(
     model="<model chosen in step 3>",
-    # The Anthropic SDK type omits Sail's completion_window extension.
-    metadata=cast(MetadataParam, {"completion_window": "balanced"}),
+    # completion_window is omitted for the default low-latency behavior.
     max_tokens=...,
     messages=...,  # unchanged
 )
@@ -295,7 +303,9 @@ Finish with a short report containing:
 
 - call sites changed, grouped by inference and sandbox legs
 - model mapping and rationale
-- completion window per call site and rationale
+- completion window per call site: which were left unset for the default
+  low-latency behavior, which were set (normally `balanced` or `flex`), and
+  rationale
 - a simple, approximate comparison of published per-million-token prices for
   the old and new models; do not present it as a bill forecast
 - before/after outputs, latency, tokens, and cost if the comparison ran;

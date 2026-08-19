@@ -29,8 +29,10 @@ claude plugin update sail@sail
 claude plugin list --json
 ```
 
-The update requires a restart or `/reload-plugins` before the running Claude
-Code session uses the new plugin payload.
+Fully restart Claude Code after the update. `/reload-plugins` refreshes the
+skills, but a session's running `sail-delegate` MCP server keeps the runtime
+it started with, and new skills driving an old runtime fail in confusing
+ways. Only a restart relaunches the server on the updated version.
 
 ## Update Codex
 
@@ -46,8 +48,11 @@ If Codex reports that `sail` is a local marketplace, reinstall from its current
 snapshot with `codex plugin add sail@sail --json`; do not edit marketplace files
 or Codex configuration by hand.
 
-Codex loads the new skills and MCP configuration in a new thread. Restart the
-app if the new thread still shows the old version.
+Codex loads the new skills in a new thread, but the app's background process
+keeps any running `sail-delegate` MCP server on the version it started with,
+and new skills driving an old runtime fail in confusing ways. After the
+upgrade, fully quit and reopen the Codex app rather than only starting a new
+thread.
 
 ## Report the result
 
