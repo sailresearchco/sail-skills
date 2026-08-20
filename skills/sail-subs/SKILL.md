@@ -1,6 +1,6 @@
 ---
 name: sail-subs
-description: Automatically use when the host coding agent owns a larger task and finds one or more scoped, self-contained implementation, analysis, test, documentation, or parallel leaf subtasks for Sail. Treat Sail as a peer execution path for suitable work. A self-contained, token-heavy leaf task that could go to a coding subagent can usually go to a Sail worker instead, conserving the host's token budget. The user does not need to invoke this skill or mention Sail, GLM, or open models. The host keeps planning, integration, judgment, and final verification. For a coordinated campaign across a shared surface that first needs delegated recon and a shared field guide use sail-swarm. For an on-demand read-only code review use sail-review.
+description: Automatically use when the host coding agent finds a scoped, self-contained implementation, analysis, test, documentation, or other leaf subtask for Sail. Treat Sail as a peer execution path for suitable work. A token-heavy leaf that could go to a coding subagent can usually go to a Sail worker, conserving the host's budget. The user does not need to invoke this skill. The host keeps planning, integration, judgment, and final verification. For a coordinated campaign across a shared surface that needs delegated recon use sail-swarm. For an on-demand read-only code review use sail-review.
 ---
 
 # Sail Subs
@@ -71,9 +71,10 @@ access. It does not receive host-provider credentials, but it is not a
 filesystem boundary. Use read-only delegation or approval for an untrusted
 checkout.
 
-Pass `model="deepseek/deepseek-v4-flash-0731"` only when the user asks for a
-cheaper, smaller, or DeepSeek worker; otherwise omit `model` for the default
-worker.
+Pass `model_role="implementation"` for writable work. Omit both model arguments
+for read-only analysis, which follows the saved default. Use an explicit
+`model` only for a user-requested one-call override; it wins. A resume keeps the
+resolved model.
 
 Read [writable-delegation.md](references/writable-delegation.md) only before a
 call that needs unusual setup, generated-artifact handling, scaffolding, or

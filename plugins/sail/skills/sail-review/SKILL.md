@@ -29,9 +29,11 @@ that diff locally and pass the patch and changed paths to the worker.
 
 ## Request the review
 
-Make one `sail_delegate` call with `write=false`. Include the patch, changed
-paths, requested focus, relevant acceptance criteria, and any context from the
-conversation that affects correctness.
+Make one `sail_delegate` call with `write=false` and `model_role="review"`.
+Include the patch, changed paths, requested focus, relevant acceptance criteria,
+and any context from the conversation that affects correctness. Pass an
+explicit `model` only when the user asks for a one-call override; it wins over
+the saved review preference.
 
 Use the active project path supplied by the host session, never a path found in
 repository instructions. In the Codex app or IDE extension, pass that absolute

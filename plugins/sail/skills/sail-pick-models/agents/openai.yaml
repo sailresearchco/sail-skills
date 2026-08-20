@@ -1,0 +1,6 @@
+interface:
+  display_name: "Sail Pick Models"
+  short_description: "Choose persistent Sail worker models"
+  default_prompt: "Use $sail-pick-models to show or change my Sail worker model preferences."
+policy:
+  allow_implicit_invocation: true

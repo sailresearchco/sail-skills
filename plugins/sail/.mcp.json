@@ -8,7 +8,7 @@
         "--refresh-package",
         "sail",
         "--from",
-        "sail[mcp]==0.7.1",
+        "sail[mcp]==0.9.0",
         "python",
         "-I",
         "-m",
@@ -34,6 +34,15 @@
           "approval_mode": "approve"
         },
         "sail_cancel": {
+          "approval_mode": "prompt"
+        },
+        "sail_get_model_preferences": {
+          "approval_mode": "approve"
+        },
+        "sail_set_model_preferences": {
+          "approval_mode": "prompt"
+        },
+        "sail_reset_model_preferences": {
           "approval_mode": "prompt"
         }
       }

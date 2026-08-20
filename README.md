@@ -8,18 +8,16 @@ building observable agents, and using preemptible GPU compute.
 
 The plugin uses standard `SKILL.md` folders and one `sail-delegate` MCP server.
 The same skill payload and server launch command ship for Claude Code and local
-Codex sessions. GLM-5.2 is the main worker model. The swarm skill runs its
-read-only recon round on the much cheaper DeepSeek V4 Flash 0731, and you can
-ask
-your coding agent to use the cheaper worker for other delegated tasks. When an
-organization's placement constraints cannot reach the cheaper model, such
-delegations fall back to GLM-5.2 automatically and the result records the
-model that served. The delegation tools keep an optional model argument, which
-the skills use for this routing, and the plugin does not present a model
-picker.
+Codex sessions. DeepSeek V4 Flash 0731 is the initial worker default. You can
+save a different default and optional overrides for recon, implementation, and
+review work with the model picker skill. These settings persist on the same
+device and affect new delegations. An explicit model on one delegation still
+wins for that call. When a selected model is unavailable for delegation, Sail
+can fall back to GLM-5.2 and records the model that served.
 
-The server exposes six tools: `sail_delegate`, `sail_fanout`, `sail_await`,
-`sail_collect`, `sail_resume`, and `sail_cancel`. Workers aim to finish within
+The server exposes nine tools: `sail_delegate`, `sail_fanout`, `sail_await`,
+`sail_collect`, `sail_resume`, `sail_cancel`, and three tools for reading,
+setting, and resetting local model preferences. Workers aim to finish within
 a 24-turn primary budget, with overflow capped at 48 turns per attempt. An
 attempt that reaches its turn limit can save its conversation and partial patch
 for 24 hours so the coding agent can continue with `sail_resume`. Cancellation
@@ -36,9 +34,10 @@ Installation, usage, and troubleshooting are covered in
 
 | Skill | Use it when |
 | --- | --- |
-| `sail-subs` | You want extra hands while you work. The host keeps ownership and sends Sail the heavy pieces. |
+| `sail-subs` | You want extra hands while you work. The host keeps ownership and sends Sail scoped execution. |
 | `sail-swarm` | You want one change made in many places, and the pieces still need discovering. The host shows you the plan first, then runs paid scouting and coordinates the workers. |
 | `sail-review` | You want findings on a diff, worst first, with nothing changed. |
+| `sail-pick-models` | Choose the persistent default and role overrides used by new Sail delegations. |
 | `sail-update` | Update the installed Sail plugin from the current coding agent and verify its version. |
 | `sail-migrate` | Migrate an application's inference or third-party sandbox execution to Sail while preserving behavior. |
 | `sail-voyage` | Build or instrument a Voyage with agents, spans, events, model-call attribution, Sailbox commands, and terminal lifecycle. |
@@ -68,14 +67,16 @@ codex plugin marketplace add sailresearchco/sail-skills
 codex plugin add sail@sail
 ```
 
-The Codex package includes all nine skills and the `sail-delegate` MCP server.
+The Codex package includes all ten skills and the `sail-delegate` MCP server.
 The server works in local Codex app, CLI, and IDE sessions. Hosted Codex
 sessions cannot run the bundled local stdio server. In app and IDE sessions,
 the Sail skills pass the active workspace path with each tool call so the
 server does not depend on its process working directory. Claude Code supplies
 the selected project root directly to plugin MCP servers, including in its
 desktop app. Codex automatically approves delegation, fanout, waiting,
-collection, and resume; cancellation still asks because it stops active work.
+collection, resume, and reading model preferences. Cancellation and preference
+changes still ask because they stop active work or change persistent local
+settings.
 
 ## Check progress and continue work
 
