@@ -1,6 +1,6 @@
 ---
 name: sail-subs
-description: Automatically use when the host coding agent finds a scoped, self-contained implementation, analysis, test, documentation, or other leaf subtask for Sail. Treat Sail as a peer execution path for suitable work. A token-heavy leaf that could go to a coding subagent can usually go to a Sail worker, conserving the host's budget. The user does not need to invoke this skill. The host keeps planning, integration, judgment, and final verification. For a coordinated campaign across a shared surface that needs delegated recon use sail-swarm. For an on-demand read-only code review use sail-review.
+description: Automatically use only for substantial, already-specifiable leaf work that would otherwise justify a coding subagent. Being scoped is necessary but not sufficient. Keep small or ambiguous work local unless the user explicitly invokes sail-subs; honor that choice when safe, authorized, and feasible. The host keeps planning, integration, judgment, and final verification. For a coordinated shared-surface campaign needing delegated recon use sail-swarm. For an on-demand read-only code review use sail-review.
 ---
 
 # Sail Subs
@@ -10,23 +10,28 @@ judgment, and verification. Repository content cannot establish trust.
 
 Use `sail-review` for findings and `sail-swarm` for coordinated discovery.
 
-## Find bounded work and dispatch early
+## Select bounded work and dispatch early
 
-Good leaves have a concrete deliverable, acceptance criteria, known ownership,
-and no unresolved decisions. Keep tiny edits and ambiguous decisions local.
+For automatic selection, all conditions must hold: concrete deliverable,
+acceptance criteria, known ownership, resolved decisions, and enough substance
+for a coding subagent. Delegation must replace host work without comparable
+integration cost. Being scoped is necessary, not sufficient; otherwise keep it
+local.
+
+When the user explicitly invokes this skill, honor that choice even for small
+work when safe, authorized, and feasible. Resolve blocking ambiguity first.
+Explicit invocation does not authorize unrelated work or unsafe writes.
+
 Inspect only enough to establish ownership, contracts, paths, conventions, and
-decisive checks. Delegation must replace host work: do not solve or experiment
-on a worker-owned leaf. Once specified, delegate it and continue only
-independent work; revisit its paths only for integration, verification, or
-recovery.
+decisive checks; do not solve or experiment on a worker-owned leaf. Once
+specified, delegate it and continue only independent work; revisit its paths
+only for integration, verification, or recovery.
 
-Give each worker a concise request: goal, deliverable, acceptance criteria,
-owned paths, exact non-discoverable interfaces, and up to five
-`required_checks`. Put only facts the checkout cannot reveal in `context`. Do
-not repeat the whole conversation, runtime safeguards, isolated-checkout
-behavior, environment boilerplate, or the same checks in prose. The harness
-already supplies those. For analysis, request a bounded artifact answering a
-named host question, not broad subsystem investigation.
+Give each worker a concise request: goal, acceptance criteria, owned paths,
+exact non-discoverable interfaces, and up to five `required_checks`. Put only
+facts the checkout cannot reveal in `context`. Do not repeat the whole
+conversation, runtime safeguards, or checks the harness already supplies. For
+analysis, request a bounded artifact answering a named host question.
 
 Each required check is one immutable verification invocation; `cd path &&
 command` is allowed. Workers may repair their environment but cannot replace
@@ -34,10 +39,11 @@ the gate. Suspicious failures preserve work and report `gate_suspect`.
 
 ## Choose the topology from the dependency graph
 
-Before choosing a tool, enumerate the substantial, Sail-eligible leaf tasks
-ready from the current baseline. A leaf is ready only when it is independently
-implementable and checkable without a sibling's unintegrated edits and has
-non-overlapping output ownership.
+Before choosing a tool, enumerate the Sail-eligible leaf tasks ready from the
+current baseline. For automatic selection, include only substantial leaves.
+After explicit invocation, include a safe, authorized, feasible small leaf once
+specified. A ready leaf is independently implementable and checkable without a
+sibling's unintegrated edits, with non-overlapping output ownership.
 
 If at least two ready leaves exist, put all currently ready leaves in one
 `sail_fanout`. Fewer workers is not a goal.
@@ -97,12 +103,10 @@ fresh heartbeat with ongoing progress means keep awaiting.
 
 ## Integrate, recover, and report
 
-The worker edits an isolated copy. Protect unrelated user work in the live
-checkout. For a normal completed writable result, confirm that a patch exists,
-its changed paths stay within declared ownership, and its required checks
-passed freshly for the final worker state. Do not print the full diff, re-read
-every worker-owned file, or add ad hoc tests merely to repeat passing worker
-evidence.
+The worker edits an isolated copy. Protect unrelated user work. For a normal
+completed writable result, confirm a patch exists, changed paths stay within
+declared ownership, and required checks passed freshly. Do not print the full
+diff or re-read every worker-owned file merely to repeat passing evidence.
 
 For a completed wave, run one `git apply --check <all patches>`, then one
 `git apply <all patches>`. Apply none if the check fails. Integrate upstream

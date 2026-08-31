@@ -34,8 +34,8 @@ Installation, usage, and troubleshooting are covered in
 
 | Skill | Use it when |
 | --- | --- |
-| `sail-subs` | You want extra hands while you work. The host keeps ownership and sends Sail scoped execution. |
-| `sail-swarm` | You want one change made in many places, and the pieces still need discovering. The host shows you the plan first, then runs paid scouting and coordinates the workers. |
+| `sail-subs` | You have substantial bounded work to delegate, or you explicitly choose Sail for smaller scoped work. The host keeps ownership. |
+| `sail-swarm` | You want one change made across a real multi-worker campaign, and the pieces still need discovering. The host shows you the plan first, then runs paid scouting and coordinates the workers. |
 | `sail-review` | You want findings on a diff, worst first, with nothing changed. |
 | `sail-pick-models` | Choose the persistent default and role overrides used by new Sail delegations. |
 | `sail-update` | Update the installed Sail plugin from the current coding agent and verify its version. |
@@ -57,8 +57,10 @@ scouting first is Swarm.
 /plugin install sail@sail
 ```
 
-Skills load when relevant. You can also invoke one directly, such as
-`/sail:sail-review`.
+Skills load automatically when relevant. You can also invoke one directly,
+such as `/sail:sail-subs` or `/sail:sail-review`. Direct invocation overrides
+automatic economic routing, but not safety, authorization, or structural
+feasibility.
 
 ### Codex
 
@@ -77,6 +79,10 @@ desktop app. Codex automatically approves delegation, fanout, waiting,
 collection, resume, and reading model preferences. Cancellation and preference
 changes still ask because they stop active work or change persistent local
 settings.
+
+Invoke a skill directly with `$sail-subs`, `$sail-swarm`, or another skill
+name. Direct invocation overrides automatic economic routing, but not safety,
+authorization, or structural feasibility.
 
 ## Check progress and continue work
 
