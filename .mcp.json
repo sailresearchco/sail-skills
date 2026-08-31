@@ -1,18 +1,15 @@
 {
   "mcpServers": {
     "sail-delegate": {
-      "command": "uvx",
+      "command": "uv",
       "args": [
+        "run",
+        "--no-project",
         "--python",
         ">=3.10",
-        "--refresh-package",
-        "sail",
-        "--from",
-        "sail[mcp]==0.9.1",
         "python",
         "-I",
-        "-m",
-        "sail.mcp"
+        "${CLAUDE_PLUGIN_ROOT}/sail_delegate_launcher.py"
       ]
     }
   }

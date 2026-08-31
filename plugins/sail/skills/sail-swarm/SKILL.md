@@ -1,6 +1,6 @@
 ---
 name: sail-swarm
-description: Use when one objective must land as several coordinated writable tasks across a shared surface that has to stay consistent, such as a cross-cutting migration, a convention rollout, or a refactor spanning many modules, and the host cannot yet specify the tasks without a discovery pass. Runs an announced, host-owned campaign. A read-only recon fanout returns area briefs, the host synthesizes them into a shared field guide and file-ownership map, then ownership-partitioned implementation waves follow, and the host merges and verifies everything. For leaf subtasks or dependency waves the host can already specify use sail-subs. For read-only findings use sail-review.
+description: Automatically use only when one objective requires several coordinated writable tasks across a shared surface, the host cannot specify them without discovery, independence must be engineered through file ownership, outputs must follow one convention, and roughly six or more implementation tasks are expected. When the user explicitly invokes sail-swarm, honor that choice without applying the economic task-count threshold if a real multi-worker campaign is safe, authorized, and feasible; never manufacture one from a single leaf. Runs an announced, host-owned campaign with recon, field-guide, implementation, and merge rounds. For already-specifiable leaves use sail-subs. For read-only findings use sail-review.
 ---
 
 # Sail Swarm
@@ -16,9 +16,17 @@ then enforces consistency across many writable workers.
 The host keeps ownership throughout. A swarm is never a transfer of the task
 to Sail; it is the host running a larger delegation formation.
 
+The tests below govern automatic selection. When the user explicitly invokes
+this skill, honor that choice even if automatic routing would choose fewer
+workers, provided the objective supports a real multi-worker campaign and the
+work is safe, authorized, and feasible. Explicit invocation does not authorize
+unrelated work or unsafe writes. Never invent partitions from a single leaf;
+if the requested campaign is not structurally possible, explain that before
+substituting another workflow.
+
 ## When a swarm is the right shape
 
-Select this skill when all three tests hold:
+For automatic selection, all four tests must hold:
 
 1. **Specification needs discovery.** Writing good task requests would first
    require a broad reading pass over the project (which conventions exist,
@@ -30,16 +38,18 @@ Select this skill when all three tests hold:
 3. **Outputs must agree.** The results need to land on one convention, one
    interface shape, or one migration pattern. Consistency across workers is a
    requirement, not a nicety.
+4. **The campaign is large enough.** Expect roughly six or more coordinated
+   implementation tasks over the shared surface. The paid recon round has a
+   fixed cost, so keep smaller campaigns in `sail-subs` unless the user
+   explicitly invokes this skill.
 
 Typical swarm-shaped work includes migrating many call sites to a new API,
 rolling one logging or error-handling convention across services, and a
 refactor pattern applied over many modules at once.
 
-The recon round has a fixed cost, so a swarm pays off at roughly six or more
-coordinated implementation tasks over a shared surface. Below that, one round
-of chunkier `sail-subs` delegations with host-written context is usually
-cheaper. A large fanout of genuinely independent tasks is still `sail-subs`,
-whatever its size; scale alone does not make a swarm.
+The count is an automatic routing threshold, not the definition of a swarm. A
+large fanout of genuinely independent tasks is still `sail-subs`, whatever its
+size; scale alone does not make a swarm.
 
 ## Announce the campaign
 
