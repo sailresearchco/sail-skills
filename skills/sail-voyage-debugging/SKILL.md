@@ -168,7 +168,7 @@ client = sail.voyage.wrap_openai(
 
 with voyage.agent("Analyst"):
     with voyage.span("score"):
-        response = client.responses.create(model="zai-org/GLM-5.1-FP8", input="...")
+        response = client.responses.create(model="zai-org/GLM-5.3", input="...")
 ```
 
   For a non-OpenAI-style client, pass `extra_headers=sail.voyage.headers()`

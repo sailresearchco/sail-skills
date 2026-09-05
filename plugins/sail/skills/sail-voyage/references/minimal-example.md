@@ -81,7 +81,7 @@ def main() -> None:
     def analyst(top) -> None:
         # One scoped Sail inference call → model-call row, auto-attributed here.
         response = sail.inference.responses.create(
-            model="zai-org/GLM-5.1-FP8",
+            model="zai-org/GLM-5.3",
             input=f"In one sentence, describe these word counts: {top}",
             background=False,
             timeout=120,

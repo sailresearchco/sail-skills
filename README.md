@@ -13,7 +13,7 @@ save a different default and optional overrides for recon, implementation, and
 review work with the model picker skill. These settings persist on the same
 device and affect new delegations. An explicit model on one delegation still
 wins for that call. When a selected model is unavailable for delegation, Sail
-can fall back to GLM-5.2 and records the model that served.
+can fall back to GLM-5.3 and records the model that served.
 
 The server exposes nine tools: `sail_delegate`, `sail_fanout`, `sail_await`,
 `sail_collect`, `sail_resume`, `sail_cancel`, and three tools for reading,
