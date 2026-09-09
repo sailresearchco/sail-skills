@@ -5,8 +5,9 @@ or final acceptance is suspicious or fails, or when a change is risky, hard to
 reverse, or overlaps user work. Read it at most once per user task and never
 reload it between waves.
 
-Confirm the result is complete and matches the delegated scope. Inspect only
-the relevant hunks at `diff_path`, or request an inline patch for a small
+For writable work, confirm completion, `scope.passed`, and the requested
+behavior. Inspect `verification` for a passing check or an
+explicitly unverified exemption. Inspect only the relevant hunks at `diff_path`, or request an inline patch for a small
 result. Narrative claims are not evidence. Preserve unrelated user work and
 resolve conflicts in favor of the live checkout.
 

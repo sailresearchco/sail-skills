@@ -7,7 +7,7 @@ task and never reload it between waves.
 
 ## Specify the request
 
-Give the worker a bounded goal, deliverable, acceptance criteria, owned paths,
+Give the worker a bounded goal, deliverable, acceptance criteria, `owned_paths`,
 and exact interfaces it consumes. Quote upstream signatures exactly. For
 fanout, give every worker non-overlapping output ownership and narrow checks
 for its own leaf. Do not ask one worker to edit another worker's files.
@@ -17,10 +17,9 @@ polish. Do not delegate work that requires inventing a fake, fixture, or test
 harness. Establish the scaffolding first, identify an existing helper, or
 remove that test from the worker's scope.
 
-Every writable task must set `required_checks` to at most five decisive
-commands. The harness runs them after the worker finishes. A failure makes the
-result incomplete with `stop_reason="checks_failed"` rather than falsely
-complete. Prefer narrow tests that independently validate the owned leaf.
+Every writable task needs up to five decisive `required_checks`, or a
+reasoned `check_exemption` when no automated check applies. Exempt work is
+reported as unverified. Prefer narrow tests that independently validate the owned leaf.
 Each entry must be one self-contained verification invocation. A leading
 `cd path && command` is allowed. Avoid `||`, `;`, pipelines, mixed precedence,
 and a launcher unavailable after setup. The worker receives the commands as
