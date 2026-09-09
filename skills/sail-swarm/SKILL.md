@@ -123,11 +123,11 @@ enters the guide.
 Partition implementation tasks by the ownership map so that no two writable
 tasks touch the same file. This partition, not luck, is what makes the fanout
 safe. Include the field guide verbatim in every task's `context`, then add
-the task's own goal, acceptance criteria, and owned paths. The verbatim guide
+the task's own goal, acceptance criteria, and `owned_paths`. The verbatim guide
 is a deliberate exception to the Sail Subs preference for minimal context:
 campaign consistency depends on every worker holding identical conventions.
 Keep the guide itself synthesized signatures and invariants, not raw recon
-transcripts. Declare each partition's decisive checks as its
+transcripts. Set each partition's `owned_paths` separately from read-reference `paths`. The MCP rejects overlapping writable ownership. Declare each partition's decisive checks as its
 `required_checks`; the harness hands them to the worker as immutable
 acceptance criteria and reruns the originals on the final tree, so do not
 repeat the commands in the request prose. Keep each entry one self-contained
@@ -135,7 +135,7 @@ invocation (a leading `cd path && command` is allowed). Pass deterministic
 dependency restoration in `setup_commands`, which run before turn one and
 stop the task on failure. Each request must still name the repository's
 package manager, unavailable tools, and artifact hazards, and state that
-edits must stay within the task's owned files. Workers may repair a broken
+edits must stay within the task's `owned_paths`. Workers may repair a broken
 environment but cannot replace the gate; a failure that looks like a broken
 invocation rather than a broken patch returns `gate_suspect` with the patch
 and checkpoint preserved. Workers are not sandboxed to their partition, so
@@ -162,7 +162,7 @@ speculatively duplicate an active worker.
 
 The host is the merge referee:
 
-1. Compare each diff's changed paths with that task's owned files before
+1. Compare each diff's changed paths with that task's `owned_paths` before
    applying anything. A worker can edit outside its assignment, so the
    partition holds only if the host enforces it here: strip or repair
    out-of-scope edits, deferring to the file's assigned owner.

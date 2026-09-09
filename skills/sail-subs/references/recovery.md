@@ -24,6 +24,11 @@ Treat check declarations separately from worker failures:
   `failed_details` and the worker's diagnosis, then verify the invocation before
   resuming or re-delegating. Worker diagnosis is advisory and cannot replace
   the original gate.
+- `no_changes` means a writable task produced no patch. Existing tests passing
+  cannot prove the requested behavior was added; inspect the baseline before
+  accepting the explanation or retrying.
+- `scope_violation` preserves edits outside ownership for inspection. Remove
+  those edits or resolve the dependency before applying the patch.
 - A genuine `checks_failed` result may be resumed only when its checkpoint
   contains useful work and one bounded repair is clear.
 - A turn-ceiling result includes `required_checks` verdicts for the partial
@@ -55,8 +60,8 @@ indefinitely or broaden recovery into silent whole-task ownership.
 
 ## Preserve partial value
 
-Workers target a 24-turn primary budget. A normal attempt can overflow to 48
-turns, which is a hard per-attempt ceiling. Cohesive work can explicitly use a
+Workers target a 24-turn primary budget. A writable attempt needs actual edits and an attempted declared check to
+overflow beyond turn 24. A normal attempt can overflow to 48 turns, which is a hard per-attempt ceiling. Cohesive work can explicitly use a
 hard 64-turn ceiling and receives a finish-only checkpoint at turn 53. A lower
 `max_turns` lowers the hard ceiling.
 Every ceiling exit receives a tools-withdrawn final-report turn, so a resume is
