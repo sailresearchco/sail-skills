@@ -21,7 +21,10 @@ There is one default and three optional role overrides:
 - `review` for Sail Review and optional verification fanouts.
 
 A role with no override inherits the default. The built-in default is DeepSeek
-V4 Flash 0731, so a fresh installation uses it for every role.
+V4 Flash 0731, so a fresh installation uses it for every role. The curated
+models are DeepSeek V4 Flash 0731, GLM-5.3, GLM-5.3-Flash, DeepSeek V4 Pro
+0813, and Kimi K3; GLM-5.3 is also the availability fallback a delegation
+finishes on when its selected model cannot serve the request.
 
 ## Apply the request
 
@@ -48,3 +51,10 @@ settings.
 
 Do not edit the settings file directly and do not call a delegation tool as a
 test. The preference tool result is the verification.
+
+## Tell the user
+
+Every delegation result carries `model` and a `model_notice` naming the model
+that ran and how to switch. Relay them once per result, even when the user did
+not ask, so the user knows which model did the work and that this skill
+changes it.

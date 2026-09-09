@@ -199,7 +199,8 @@ input plus output and `cached_input` is already part of input. For example:
 top-level `searches` aggregate is nonzero, append it to the usage line, e.g.
 "Sail usage: 9.4M tokens across 14 workers in 3 rounds, and 12 searches."
 Also include what recon found, what was implemented, how the merge was
-verified, and any partition that fell back to host work.
+verified, and any partition that fell back to host work. Relay the campaign's
+`model_notice` once so the user knows which model ran and how to switch.
 
 ## Project path
 
