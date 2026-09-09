@@ -116,4 +116,6 @@ available. Preserve partial value and report fallback honestly.
 
 After any paid work, report top-level `tokens.total` and `searches`. Cached input
 is already part of input. Add each delegation's final aggregate once; resumed
-results are cumulative. Report usage even for failed or very small runs.
+results are cumulative. Report usage even for failed or very small runs. Also
+relay the result's `model_notice` once so the user knows which model ran and
+how to switch.

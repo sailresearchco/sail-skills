@@ -66,7 +66,9 @@ hours and refresh after another incomplete attempt.
 Validate each finding against the live checkout before reporting it. Remove
 duplicates, unsupported claims, and issues outside the requested scope. Return
 the remaining findings in severity order with clickable file references where
-the host supports them. Keep summaries brief and place findings first.
+the host supports them. Keep summaries brief and place findings first. Relay
+the result's `model_notice` once so the user knows which model reviewed the
+code and how to switch.
 
 Review output is advisory. Do not apply fixes unless the user separately asks
 for implementation. If they do, the host may fix the findings locally or use
