@@ -40,6 +40,10 @@ create parallel work. Dependent work belongs in later waves, after its inputs
 are integrated and checked. Use `sail-swarm` when independence first needs to
 be engineered through discovery and a shared guide.
 
+A leaf spanning several packages or many edit sites is a wave plan, not a
+leaf: split it by ownership into one fanout, or keep it cohesive and expect
+a resume.
+
 ## Dispatch through the enforced contract
 
 Give each task a concise goal and acceptance criteria. Set `owned_paths` to
@@ -71,12 +75,11 @@ for a user-requested override. A resume keeps its original resolved model.
 In Codex, pass the trusted active workspace's absolute `project_path` on every
 Sail lifecycle call; Claude Code supplies it.
 
-Omit `max_turns` normally for the 48-turn ceiling. At the 24-turn boundary,
-writable overflow requires actual edits and an attempted declared check.
-Repeated reads and no-op writes do not establish progress; stalled work closes
-with a resumable checkpoint. Increasing the ceiling does not repair missing
-design or setup. Reserve 64 turns for cohesive work whose invariants prevent a
-smaller task; it still must demonstrate progress.
+Omit `max_turns`; the 128-turn ceiling is a backstop, not a budget to tune.
+At the 24-turn boundary, writable overflow requires actual edits and an
+attempted declared check. Repeated reads and no-op writes do not establish
+progress; stalled work closes with a resumable checkpoint. A worker that
+reaches the ceiling while still progressing is resumed, not re-sized.
 
 Read [writable-delegation.md](references/writable-delegation.md) once before
 unusual setup, scaffolding, or generated-artifact work. Ordinary leaves do not
@@ -111,8 +114,8 @@ hard to reverse. Inspect the relevant hunks and evidence.
 Never present incomplete work as finished. For stalled, failed, partial,
 checks-failed, or scope-violating work, read [recovery.md](references/recovery.md)
 completely before resume, re-delegation, or local fallback. Resume only with a
-usable checkpoint and a named bounded repair, not because more turns are
-available. Preserve partial value and report fallback honestly.
+usable checkpoint and a concrete next step or named repair, not because more
+turns are available. Preserve partial value and report fallback honestly.
 
 After any paid work, report top-level `tokens.total` and `searches`. Cached input
 is already part of input. Add each delegation's final aggregate once; resumed
