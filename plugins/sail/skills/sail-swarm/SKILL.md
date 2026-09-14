@@ -147,11 +147,9 @@ Topology follows the `sail-subs` rules. Independent partitions form one
 fanout. When one interface must land before its consumers can build against
 it, that interface is an earlier wave, integrated before the consumer fanout
 starts, with its exact signature quoted in each consumer request. Omit
-`max_turns` normally for the hard 48-turn per-attempt default; every
-explicit value is a hard ceiling too. A fanout's `max_turns` applies to
-every task in the call, so when one cohesive partition warrants the explicit
-64-turn ceiling, run it as its own `sail_delegate` call or its own wave
-instead of raising the whole fanout's ceiling.
+`max_turns`; the hard 128-turn per-attempt ceiling is a backstop, and every
+explicit value is a hard ceiling too. A partition that reaches it while
+still progressing is resumed in place.
 
 Wait per the `sail-subs` rules. With no independent host work, call with
 `wait=true`. Otherwise start with `wait=false`, do only non-overlapping host

@@ -39,7 +39,7 @@ import subprocess
 # runtime exactly means an existing uv cache can never silently serve an older
 # Sail runtime than the plugin manifests. Bump here on every plugin version
 # bump (see SKILL_MAINTENANCE.md).
-RUNTIME_VERSION = "0.11.4"
+RUNTIME_VERSION = "0.11.5"
 RUNTIME_SPEC = f"sail[mcp]=={RUNTIME_VERSION}"
 UVX_PREFIX = ["uvx", "--python", ">=3.10"]
 
