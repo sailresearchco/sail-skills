@@ -23,7 +23,8 @@ Before dispatch, establish five things:
 - Owned files or directories, separate from read references.
 - An existing implementation or test example to follow.
 - Resolved interfaces and dependencies; no reliance on a sibling's pending edits.
-- A decisive verification command that the isolated checkout can run.
+- A decisive check run early; persistence work needs a minimal real-DB test
+  and an accessible disposable database.
 
 Inspect only enough to settle these. If an interface or fixture is unknown,
 resolve it with bounded discovery first. Do not send a vague implementation
@@ -40,9 +41,7 @@ create parallel work. Dependent work belongs in later waves, after its inputs
 are integrated and checked. Use `sail-swarm` when independence first needs to
 be engineered through discovery and a shared guide.
 
-A leaf spanning several packages or many edit sites is a wave plan, not a
-leaf: split it by ownership into one fanout, or keep it cohesive and expect
-a resume.
+Split large leaves by ownership or expect a resume.
 
 ## Dispatch through the enforced contract
 
@@ -51,12 +50,17 @@ relative files/directories the worker may change, including generated outputs.
 Use `paths` for read references, and `context` only for facts unavailable in the
 checkout. Do not paste the conversation or repeat harness rules.
 
-Writable calls require nonempty `required_checks`, or `check_exemption` stating
-why no automated check applies. An exemption is reported as unverified, not a
-test pass. Up to five checks are accepted. Each is one immutable verification
-invocation; `cd path && command` is allowed. Other shell chains and pipelines
-are rejected; put complex verification in a repository script. Workers may repair their environment
-but cannot replace the original gate. Final checks run on the delivered tree.
+Writable calls require one to five `required_checks`, each one immutable
+verification invocation, or `check_exemption` stating why no automated check
+applies (reported as unverified). `cd path && command` is allowed; other
+chains/pipelines are rejected. Put complex verification in a repository script.
+Workers may repair their environment but must run the exact declared checks.
+The original gate runs on the final tree.
+
+Prefer supported native quiet flags when declaring tests, e.g.
+`vitest run --silent=passed-only`, preserving failure logs. Quiet flags aid
+readability; truncation never kills commands. `head`/`tail` pipelines mask exit
+status.
 
 Restore dependencies through up to three deterministic `setup_commands` before
 model work. Honor the repository's pinned tool versions; do not rely on an
@@ -97,11 +101,13 @@ host cancellation. Use indexed `sail_collect` for evidence or recovery, with
 A writable result with no patch returns `no_changes`, even when existing
 tests pass. Confirm whether the request was already satisfied before retrying.
 
-For read-only analysis, verify key claims and command working directories
-against source evidence. Completion alone does not establish accuracy.
+For read-only analysis, verify key claims against source evidence.
 
 For completed writable work, check the harness's scope and verification results before
 the worker's narrative. Confirm a patch exists and protect unrelated user edits.
+Return concrete review findings and requested regression coverage through
+`sail_resume`; read recovery guidance first, including for completed patches.
+Substantial host takeover needs a stated reason, not extra user approval.
 For a completed wave, run one `git apply --check <all patches>` followed by one
 `git apply <all patches>`; apply none if the check fails. Run final acceptance
 on the integrated tree once after all waves. Do not duplicate passing evidence
@@ -109,7 +115,7 @@ by rereading every worker-owned file.
 
 Read [result-integration.md](references/result-integration.md) once if evidence,
 scope, applicability, or acceptance is suspicious, or the change is risky or
-hard to reverse. Inspect the relevant hunks and evidence.
+hard to reverse.
 
 Never present incomplete work as finished. For stalled, failed, partial,
 checks-failed, or scope-violating work, read [recovery.md](references/recovery.md)
