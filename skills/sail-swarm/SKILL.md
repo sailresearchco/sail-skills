@@ -131,7 +131,12 @@ transcripts. Set each partition's `owned_paths` separately from read-reference `
 `required_checks`; the harness hands them to the worker as immutable
 acceptance criteria and reruns the originals on the final tree, so do not
 repeat the commands in the request prose. Keep each entry one self-contained
-invocation (a leading `cd path && command` is allowed). Pass deterministic
+invocation (a leading `cd path && command` is allowed). When declaring noisy
+tests, prefer native quiet flags that preserve failure diagnostics, such as
+`vitest run --silent=passed-only` when supported. Quiet flags improve
+readability; output truncation never kills a command. Workers must run the
+exact declared checks without `head`/`tail` pipelines that mask exit status.
+Pass deterministic
 dependency restoration in `setup_commands`, which run before turn one and
 stop the task on failure. Each request must still name the repository's
 package manager, unavailable tools, and artifact hazards, and state that
@@ -156,6 +161,10 @@ Wait per the `sail-subs` rules. With no independent host work, call with
 work, then make one `sail_await` call. Do not poll on a timer, and do not
 speculatively duplicate an active worker.
 
+For persistence leaves, establish an accessible disposable database and declare
+a minimal real-DB check. Have the worker run it early; mocked unit tests alone
+do not establish persistence correctness.
+
 ## Round three, merge and verify
 
 The host is the merge referee:
@@ -178,8 +187,12 @@ The host is the merge referee:
    Prefer `sail_resume` when a task has a usable checkpoint, switching to a
    `mode="finalize"` resume after a ceiling or genuine `checks_failed` exit.
    Treat `gate_suspect` as a possibly broken check invocation, not a broken
-   patch: verify the invocation before spending paid turns. Fall back
-   locally as a bounded, transparent repair when no checkpoint is usable.
+   patch: inspect diagnostics before spending paid turns. Return concrete review
+   findings and requested regression coverage through `sail_resume`, including
+   completed patches, following the Sail Subs recovery guide. Small local fixes
+   are allowed; substantial host takeover needs a stated reason such as exhausted
+   repair budget, an architectural decision, or an inaccessible worker environment.
+   No extra user approval is required.
 6. Record each round's final top-level `tokens` aggregate for the campaign
    report. Count a resumed task only in its latest cumulative result.
 
