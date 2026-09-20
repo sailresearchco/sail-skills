@@ -109,7 +109,6 @@ over:
 sail_resume(
   delegation_id="<id>",
   task_index=0,
-  additional_turns=24,
   instruction="Finish the remaining verification.",
   wait=true
 )
