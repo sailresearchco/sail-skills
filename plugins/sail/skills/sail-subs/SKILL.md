@@ -27,9 +27,9 @@ Before dispatch, establish five things:
   and an accessible disposable database.
 
 Inspect only enough to settle these. If an interface or fixture is unknown,
-resolve it with bounded discovery first. Do not send a vague implementation
-request and expect the worker to invent the missing design. Once a leaf is
-specified, dispatch it; do not also solve that leaf on the host.
+resolve it with bounded discovery first. Resolve the missing design before
+dispatch. Once a leaf is specified, dispatch it; do not also solve that leaf on
+the host.
 
 ## Choose the topology
 
@@ -41,7 +41,7 @@ create parallel work. Dependent work belongs in later waves, after its inputs
 are integrated and checked. Use `sail-swarm` when independence first needs to
 be engineered through discovery and a shared guide.
 
-Split large leaves by ownership or expect a resume.
+Split by ownership or expect a resume.
 
 ## Dispatch through the enforced contract
 
@@ -84,6 +84,7 @@ At the 24-turn boundary, writable overflow requires actual edits and an
 attempted declared check. Repeated reads and no-op writes do not establish
 progress; stalled work closes with a resumable checkpoint. A worker that
 reaches the ceiling while still progressing is resumed, not re-sized.
+Omit `additional_turns` too; continuation has the same hard 128-turn ceiling.
 
 Read [writable-delegation.md](references/writable-delegation.md) once before
 unusual setup, scaffolding, or generated-artifact work. Ordinary leaves do not
@@ -91,7 +92,7 @@ need that reference. Read each reference at most once per task.
 
 ## Await, integrate, and recover
 
-Briefly announce the work going to Sail. With independent host work, dispatch
+Announce work going to Sail. With independent host work, dispatch
 with `wait=false`, retain the id, do only non-overlapping work, then call
 `sail_await` once. Otherwise use `wait=true`. Do not poll or duplicate workers.
 Call `sail_cancel` only when the user asks to stop; a runtime checkpoint is not
@@ -107,7 +108,6 @@ For completed writable work, check the harness's scope and verification results 
 the worker's narrative. Confirm a patch exists and protect unrelated user edits.
 Return concrete review findings and requested regression coverage through
 `sail_resume`; read recovery guidance first, including for completed patches.
-Substantial host takeover needs a stated reason, not extra user approval.
 For a completed wave, run one `git apply --check <all patches>` followed by one
 `git apply <all patches>`; apply none if the check fails. Run final acceptance
 on the integrated tree once after all waves. Do not duplicate passing evidence
@@ -121,7 +121,9 @@ Never present incomplete work as finished. For stalled, failed, partial,
 checks-failed, or scope-violating work, read [recovery.md](references/recovery.md)
 completely before resume, re-delegation, or local fallback. Resume only with a
 usable checkpoint and a concrete next step or named repair, not because more
-turns are available. Preserve partial value and report fallback honestly.
+turns are available. Healthy incomplete workers keep implementation ownership;
+repeat directed resumes while evidence supports continuation. Keep worker
+exploration in its checkpoint, outside host context. Report fallback honestly.
 
 After any paid work, report top-level `tokens.total` and `searches`. Cached input
 is already part of input. Add each delegation's final aggregate once; resumed

@@ -6,9 +6,10 @@ fallback. Read it once per task; never reload it between waves.
 
 ## Diagnose once
 
-Use indexed `sail_collect` with `include_request=false`. Inspect status,
-`stop_reason`, patch, checkpoint, harness check evidence, and cumulative usage
-before worker claims. Do not recover work still running. A fanout with
+Use indexed `sail_collect` with `include_request=false`; omit known diffs.
+Inspect status, `stop_reason`, checkpoint, check evidence, and usage before
+worker claims. Read bounded diagnostics, not checkpoint conversations.
+Do not recover running work. A fanout with
 `status="partial"` can contain completed siblings; recover only affected tasks.
 
 `gate_suspect` is a hint, not a diagnosis. Worker explanations cannot replace
@@ -38,10 +39,11 @@ retain checkpoints. Pass the collected `patch_revision` as
 `expected_patch_revision`, and findings plus requested regression coverage in
 `instruction`; both are required for completed patches.
 
-Choose one continuation:
+Omit `additional_turns`: continue defaults to a hard 128-turn allowance per
+attempt. More turns never establish completion. Choose a mode:
 
-- `insufficient_progress` or `stalled`: one `mode="continue"` resume, normally
-  24 turns, naming a file, immediate check, or resolved prerequisite. At the
+- `insufficient_progress` or `stalled`: diagnose the missing evidence; use
+  `mode="continue"` with a file, exact check, or resolved prerequisite. At the
   24-turn boundary, overflow requires edits and an attempted declared check.
   For persistence tasks, run the smallest real-DB check early against an
   accessible disposable database.
@@ -59,21 +61,22 @@ Choose one continuation:
 - A broken declared check requires a new delegation with corrected checks.
   Cancelled work is terminal; never resume it.
 
-Stop after two consecutive attempts without evidence: new edits plus an
-attempted declared check. Small local fixes remain allowed. Substantial host
-takeover requires a stated reason: exhausted recovery, architectural judgment,
-or an environment the worker cannot access. This is an explanation, not an
-extra user approval step. Never silently take over implementation.
+Healthy incomplete workers keep implementation ownership. Repeat directed
+resumes while substantive edits and worker-attempted exact checks (if declared)
+show progress
+on remaining work; activity or harness checks alone do not prove health.
+Stop after two consecutive attempts without evidence: new edits plus an exact
+worker check attempt (if declared). Surface blockers or exhausted recovery. Small
+local fixes remain allowed; explain substantial host takeover, not extra approval.
 
 ## Revisions and partial value
 
 `diff_path` names an immutable full replacement patch from the original
 baseline; `supersedes_revision` names its predecessor. Never apply both
-revisions cumulatively. If a patch was applied or the host changed overlapping
-code, compare and merge revisions in a separate checkout against the current
-host tree. Preserve host edits; do not blindly reverse the earlier patch.
-Resume cannot incorporate later host changes automatically. If those changes
-are prerequisites, re-delegate from the integrated baseline.
+revisions cumulatively. After application or overlapping host edits, merge in
+a separate checkout against the current tree; preserve host edits. Resumes
+cannot incorporate later host changes. If those are prerequisites, re-delegate
+from the integrated baseline.
 
 `omitted_files` or `diff_error` means the patch is incomplete or unavailable;
 no safe checkpoint exists. Preserve useful analysis without claiming worker

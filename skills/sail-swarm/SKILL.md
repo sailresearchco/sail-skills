@@ -154,7 +154,8 @@ it, that interface is an earlier wave, integrated before the consumer fanout
 starts, with its exact signature quoted in each consumer request. Omit
 `max_turns`; the hard 128-turn per-attempt ceiling is a backstop, and every
 explicit value is a hard ceiling too. A partition that reaches it while
-still progressing is resumed in place.
+still progressing keeps implementation ownership through repeated directed
+resumes. Omit `additional_turns` for the same hard 128-turn continuation ceiling.
 
 Wait per the `sail-subs` rules. With no independent host work, call with
 `wait=true`. Otherwise start with `wait=false`, do only non-overlapping host
@@ -184,14 +185,17 @@ The host is the merge referee:
 4. Check results against the field guide, since consistency with it was the
    point of the campaign.
 5. Handle `status="incomplete"` and failed entries by the `sail-subs` rules.
-   Prefer `sail_resume` when a task has a usable checkpoint, switching to a
-   `mode="finalize"` resume after a ceiling or genuine `checks_failed` exit.
+   Prefer `sail_resume` with direction while a usable checkpoint shows substantive
+   edits and exact worker-attempted checks, when declared, advancing the assignment. Use
+   `mode="continue"` for remaining implementation, even after a ceiling;
+   `mode="finalize"` is only for a named narrow repair.
    Treat `gate_suspect` as a possibly broken check invocation, not a broken
    patch: inspect diagnostics before spending paid turns. Return concrete review
    findings and requested regression coverage through `sail_resume`, including
    completed patches, following the Sail Subs recovery guide. Small local fixes
-   are allowed; substantial host takeover needs a stated reason such as exhausted
-   repair budget, an architectural decision, or an inaccessible worker environment.
+   are allowed; surface concrete blockers or exhausted recovery before explaining
+   substantial host takeover. An automatic repair limit alone does not exhaust
+   directed continuation. Keep worker exploration in its checkpoint, not host context.
    No extra user approval is required.
 6. Record each round's final top-level `tokens` aggregate for the campaign
    report. Count a resumed task only in its latest cumulative result.
