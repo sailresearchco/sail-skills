@@ -1,7 +1,7 @@
 {
   "name": "sail",
-  "version": "0.12.3",
-  "description": "Migrate inference, build observable agents, allocate preemptible GPU compute, and delegate coding work to Sail from your preferred coding agent.",
+  "version": "0.12.4",
+  "description": "Migrate inference and sandbox execution, allocate preemptible GPU compute, and delegate coding work to Sail from your preferred coding agent.",
   "author": {
     "name": "Sail Research",
     "url": "https://sailresearch.com"
@@ -11,7 +11,6 @@
   "license": "Apache-2.0",
   "keywords": [
     "sail",
-    "voyages",
     "agent-skills",
     "claude-code",
     "codex",
@@ -25,7 +24,7 @@
   "interface": {
     "displayName": "Sail",
     "shortDescription": "Delegate coding work and build agents on Sail",
-    "longDescription": "Migrate inference, build observable agents, allocate preemptible GPU compute, and delegate coding work to Sail from your preferred coding agent.",
+    "longDescription": "Migrate inference and sandbox execution, allocate preemptible GPU compute, and delegate coding work to Sail from your preferred coding agent.",
     "developerName": "Sail Research",
     "category": "Developer Tools",
     "capabilities": [
