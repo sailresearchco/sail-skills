@@ -3,8 +3,8 @@
 Use Sail models from the coding agent you already work in. The Sail plugin can
 delegate scoped coding work, run a coordinated multi-worker campaign, or
 request a read-only review. Your coding agent keeps ownership of the task in
-every case. It also includes skills for migrating applications to Sail,
-building observable agents, and using preemptible GPU compute.
+every case. It also includes skills for migrating applications to Sail and
+using preemptible GPU compute.
 
 The plugin uses standard `SKILL.md` folders and one `sail-delegate` MCP server.
 The same skill payload and server launch command ship for Claude Code and local
@@ -40,9 +40,6 @@ Installation, usage, and troubleshooting are covered in
 | `sail-pick-models` | Choose the persistent default and role overrides used by new Sail delegations. |
 | `sail-update` | Update the installed Sail plugin from the current coding agent and verify its version. |
 | `sail-migrate` | Migrate an application's inference or third-party sandbox execution to Sail while preserving behavior. |
-| `sail-voyage` | Build or instrument a Voyage with agents, spans, events, model-call attribution, Sailbox commands, and terminal lifecycle. |
-| `sail-inference-with-voyage` | Attribute Sail inference calls to the active Voyage, agent, and span. |
-| `sail-voyage-debugging` | Diagnose a Voyage that ran but appears incomplete or incorrect in the dashboard. |
 | `sail-gpu-marketplace` | Allocate, connect to, and release a preemptible GPU VM, or recover checkpointed work after an interruption. |
 
 The line to remember: several jobs is Subs; one sweeping job that needs
@@ -69,7 +66,7 @@ codex plugin marketplace add sailresearchco/sail-skills
 codex plugin add sail@sail
 ```
 
-The Codex package includes all ten skills and the `sail-delegate` MCP server.
+The Codex package includes all seven skills and the `sail-delegate` MCP server.
 The server works in local Codex app, CLI, and IDE sessions. Hosted Codex
 sessions cannot run the bundled local stdio server. In app and IDE sessions,
 the Sail skills pass the active workspace path with each tool call so the

@@ -1,6 +1,6 @@
 ---
 name: sail-migrate
-description: "Use to migrate or switch an existing app, agent, or background workflow to Sail by moving OpenAI Responses or Chat Completions, Anthropic Messages, raw HTTP, or framework configuration to the Sail API, and by moving sandbox execution from E2B, Modal, Daytona, Docker, or another third-party sandbox to Sailboxes, since a Sailbox is Sail's sandbox. Covers call-site inventory, model and completion-window selection, in-place edits that preserve existing behavior, an optional before/after comparison run, and moving a compatible agent harness into a Sailbox. Trigger on migrate/switch/port/move to Sail, replacing an OpenAI-compatible or Anthropic inference endpoint with Sail, or moving sandbox execution or an agent harness to Sail. For building or instrumenting a Voyage use sail-voyage; for attributing model calls inside a Voyage use sail-inference-with-voyage."
+description: "Use to migrate or switch an existing app, agent, or background workflow to Sail by moving OpenAI Responses or Chat Completions, Anthropic Messages, raw HTTP, or framework configuration to the Sail API, and by moving sandbox execution from E2B, Modal, Daytona, Docker, or another third-party sandbox to Sailboxes, since a Sailbox is Sail's sandbox. Covers call-site inventory, model and completion-window selection, in-place edits that preserve existing behavior, an optional before/after comparison run, and moving a compatible agent harness into a Sailbox. Trigger on migrate/switch/port/move to Sail, replacing an OpenAI-compatible or Anthropic inference endpoint with Sail, or moving sandbox execution or an agent harness to Sail."
 ---
 
 # Migrate to Sail
@@ -314,10 +314,6 @@ Finish with a short report containing:
 - unsupported features, ambiguous choices, and untested paths
 - exactly where to set `SAIL_API_KEY` locally and in the deployment system
 
-Optionally wrap the migrated workflow in a Voyage to record each run as a
-dashboard trace. See `sail-voyage`; do not add Voyage instrumentation as part
-of the migration itself.
-
 ## Hard rules
 
 - Do not change prompts, tools, or business logic while migrating.
@@ -329,6 +325,6 @@ of the migration itself.
   the old version.
 - Do not create a Sailbox per command unless that preserves intentional clean
   per-command isolation from the old workload.
-- Do not add Voyage instrumentation beyond recommending `sail-voyage`.
+- Do not add unsolicited Voyage instrumentation while migrating.
 - Do not overstate verification. Label each check by what it actually
   exercised.
