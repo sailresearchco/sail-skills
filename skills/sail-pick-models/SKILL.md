@@ -22,8 +22,8 @@ There is one default and three optional role overrides:
 
 A role with no override inherits the default. The built-in default is DeepSeek
 V4 Flash 0731, so a fresh installation uses it for every role. The curated
-models are DeepSeek V4 Flash 0731, GLM-5.3, GLM-5.3-Flash, DeepSeek V4 Pro
-0813, and Kimi K3; GLM-5.3 is also the availability fallback a delegation
+models are DeepSeek V4.1 Flash, DeepSeek V4 Flash 0731, GLM-5.3,
+GLM-5.3-Flash, DeepSeek V4 Pro 0813, and Kimi K3; GLM-5.3 is also the availability fallback a delegation
 finishes on when its selected model cannot serve the request.
 
 ## Apply the request
