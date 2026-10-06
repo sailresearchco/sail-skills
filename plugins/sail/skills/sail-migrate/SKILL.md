@@ -111,7 +111,8 @@ use these stable semantics:
 - `balanced`: more tokens per dollar for background or autonomous agents and
   pipelines
 - `flex`: the lowest prices for batch jobs, evaluations, or offline processing;
-  it has no latency target and requires `background=True` with the Responses API
+  it has no latency target; send it with `background=True` on the Responses API
+  or through the Batch API
 
 Leave `metadata.completion_window` unset for the default low-latency behavior:
 Sail picks the fastest published window compatible with the model and request.

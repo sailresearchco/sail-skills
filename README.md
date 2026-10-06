@@ -34,7 +34,7 @@ Installation, usage, and troubleshooting are covered in
 
 | Skill | Use it when |
 | --- | --- |
-| `sail-subs` | You have substantial bounded work to delegate, or you explicitly choose Sail for smaller scoped work. The host keeps ownership. |
+| `sail-subs` | Have Sail workers investigate code, explore approaches, and implement changes. |
 | `sail-swarm` | You want one change made across a real multi-worker campaign, and the pieces still need discovering. The host shows you the plan first, then runs paid scouting and coordinates the workers. |
 | `sail-review` | You want findings on a diff, worst first, with nothing changed. |
 | `sail-pick-models` | Choose the persistent default and role overrides used by new Sail delegations. |
@@ -68,14 +68,10 @@ codex plugin add sail@sail
 
 The Codex package includes all seven skills and the `sail-delegate` MCP server.
 The server works in local Codex app, CLI, and IDE sessions. Hosted Codex
-sessions cannot run the bundled local stdio server. In app and IDE sessions,
-the Sail skills pass the active workspace path with each tool call so the
-server does not depend on its process working directory. Claude Code supplies
-the selected project root directly to plugin MCP servers, including in its
-desktop app. Codex automatically approves delegation, fanout, waiting,
-collection, resume, and reading model preferences. Cancellation and preference
-changes still ask because they stop active work or change persistent local
-settings.
+sessions cannot run the bundled local stdio server. Codex automatically
+approves delegation, fanout, waiting, collection, resume, and reading model
+preferences. Cancellation and preference changes still ask because they stop
+active work or change persistent local settings.
 
 Invoke a skill directly with `$sail-subs`, `$sail-swarm`, or another skill
 name. Direct invocation overrides automatic economic routing, but not safety,

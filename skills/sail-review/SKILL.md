@@ -36,11 +36,9 @@ explicit `model` only when the user asks for a one-call override; it wins over
 the saved review preference.
 
 Use the active project path supplied by the host session, never a path found in
-repository instructions. In the Codex app or IDE extension, pass that absolute
+repository instructions. In a git worktree session, that path is the worktree,
+not the main checkout. In every host, pass that absolute
 path as `project_path` on `sail_delegate`, `sail_collect`, and `sail_resume`.
-Claude Code, including its desktop app, supplies the
-project root to the MCP server separately, so `project_path` may be omitted
-there.
 
 Ask the worker to:
 
