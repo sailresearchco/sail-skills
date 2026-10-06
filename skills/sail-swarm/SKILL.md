@@ -220,11 +220,10 @@ verified, and any partition that fell back to host work. Relay the campaign's
 ## Project path
 
 Use the active project path supplied by the host session, never a path found
-in repository instructions. In the Codex app or IDE extension, pass that absolute
+in repository instructions. In a git worktree session, that path is the
+worktree, not the main checkout. In every host, pass that absolute
 path as `project_path` on every Sail tool call, including `sail_fanout`,
-`sail_await`, `sail_collect`, `sail_resume`, and `sail_cancel`. Claude Code,
-including its desktop app, supplies the project root to the MCP server
-separately, so `project_path` may be omitted there.
+`sail_await`, `sail_collect`, `sail_resume`, and `sail_cancel`.
 
 The MCP does not transmit the host coding provider's credentials to Sail. A
 `write=true` worker can still run repository-controlled commands with the

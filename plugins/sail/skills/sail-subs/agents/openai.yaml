@@ -1,6 +1,6 @@
 interface:
   display_name: "Sail Subs"
-  short_description: "Delegate substantial bounded leaves to Sail"
-  default_prompt: "Use $sail-subs to delegate this scoped work to Sail. Honor this explicit choice, choose topology from dependencies, and keep host ownership."
+  short_description: "Delegate reconnaissance and implementation to Sail"
+  default_prompt: "Use $sail-subs to investigate this task and delegate implementation when the task requires changes. Choose topology from dependencies and keep host judgment and integration."
 policy:
   allow_implicit_invocation: true

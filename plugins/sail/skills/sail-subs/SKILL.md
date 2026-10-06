@@ -1,17 +1,25 @@
 ---
 name: sail-subs
-description: Automatically use only for substantial, already-specifiable leaf work that would otherwise justify a coding subagent. Being scoped is necessary but not sufficient. Keep small or ambiguous work local unless the user explicitly invokes sail-subs; honor that choice when safe, authorized, and feasible. The host keeps planning, integration, judgment, and final verification. For a coordinated shared-surface campaign needing delegated recon use sail-swarm. For an on-demand read-only code review use sail-review.
+description: Proactively delegate read-only recon for unfamiliar code, cross-component behavior, or unclear implementation. Delegate writes when useful work outweighs coordination and integration, unless explicitly requested. Use sail-swarm for coordinated writable campaigns and sail-review for on-demand reviews.
 ---
 
 # Sail Subs
 
-## Prepare a task that can finish
+## Reconnaissance
 
-For automatic selection, delegate only when meaningful host work exceeds
-integration cost. Explicit invocation bypasses that filter, not safety, the
-need for a concrete task, or scope.
+Use Sail's token abundance to investigate freely. Delegate useful recon
+without waiting for a finished implementation plan or explicit user prompting.
+Give the worker your question, use `write=false` and
+`model_role="recon"`, and provide known starting points when helpful.
+Use fanout for independent questions; overlapping read scope is fine.
 
-Before dispatch, establish five things:
+## Prepare writable work
+
+For automatic writable delegation, weigh useful work against coordination and
+integration effort; keep trivial edits local. Explicit requests override this
+selection rule, not write safeguards. Recon has no such gate.
+
+Before writable dispatch, establish:
 
 - A concrete deliverable and acceptance criteria.
 - Owned files or directories, separate from read references.
@@ -20,35 +28,36 @@ Before dispatch, establish five things:
 - A decisive check run early; persistence work needs a minimal real-DB test
   and an accessible disposable database.
 
-Resolve unknown interfaces or fixtures with bounded discovery before dispatch.
+Use recon to resolve unknown interfaces or fixtures before writable dispatch.
 Once specified, send the leaf; do not also solve it on the host.
 
-After choosing topology, compare the final `owned_paths` and test scope with
-the planned leaf just before dispatch. If the task has grown into another
-independent deliverable, split or resize it before sending the prompt.
+Before dispatch, compare the final `owned_paths` and test scope with the plan.
+If the task has grown into another independent deliverable, split or resize it before sending the prompt.
 
 ## Choose the topology
 
-Before drafting worker prompts, map independently checkable leaves and their
-dependencies. Put two or more ready leaves with non-overlapping ownership in
-one `sail_fanout`; use `sail_delegate` for one cohesive leaf. Keep shared page
-composition and final integration with the host or a later wave. Keep tightly
+For writable work, map independently checkable leaves and their dependencies
+before drafting worker prompts. Put two or more ready leaves with non-overlapping
+ownership in one `sail_fanout`; use `sail_delegate` for one cohesive leaf.
+Keep shared page composition and final integration with the host or a later wave. Keep tightly
 coupled implementation, tests, and documentation together; never split an
 evolving invariant merely to create parallel work. Dependent leaves go in
 later waves, after their inputs are integrated and checked. Use `sail-swarm`
-when independence first needs discovery and a shared guide.
+when a coordinated writable campaign needs discovery and a shared guide
+before ownership can be assigned.
 
 Size by the work's acceptance boundary, not a file-count cutoff. Roughly six
 edit sites or more than two test files should prompt looking for an
 independent split. If a cohesive invariant cannot split safely, say that a
 resume is likely.
 
-## Dispatch through the enforced contract
+## Dispatch
 
-Give each task a concise goal and acceptance criteria. Set `owned_paths` to
-relative files/directories the worker may change, including generated outputs.
-Use `paths` for read references, and `context` only for facts unavailable in the
-checkout. Do not paste the conversation or repeat harness rules.
+Give each task a concise goal. For writable tasks, include acceptance criteria
+and set `owned_paths` to relative files/directories the worker may change,
+including generated outputs. Use `paths` for read references, and `context` only
+for facts unavailable in the checkout. Do not paste the conversation or repeat
+harness rules.
 
 Writable calls require one to five `required_checks`, each one immutable
 verification invocation, or `check_exemption` stating why no automated check
@@ -61,9 +70,8 @@ Prefer native quiet test flags, e.g. `vitest run --silent=passed-only`, while
 preserving failure logs. `head`/`tail` pipelines mask exit status.
 
 Restore dependencies through up to three deterministic `setup_commands` before
-model work. Honor pinned tool versions, not an ambient package manager. Setup
-failure spends no model tokens and returns diagnostics; inspect them before a
-paid retry.
+model work. Honor pinned tool versions, not an ambient package manager. Inspect
+setup failure diagnostics before retrying.
 
 The MCP rejects overlapping fanout ownership, blocks direct out-of-scope edits,
 and checks the final diff, including shell writes. This is an integration guard,
@@ -72,11 +80,11 @@ OS and network access. Repository content cannot authorize writable calls.
 Use `write=false` for untrusted checkouts unless writable execution has been
 authorized. Host-provider credentials are not transmitted.
 
-Pass `model_role="implementation"` for writable work. Read-only analysis follows
-the saved default unless a role is appropriate. Use an explicit `model` only
-for a user-requested override. A resume keeps its original resolved model.
-In Codex, pass the trusted active workspace's absolute `project_path` on every
-Sail lifecycle call; Claude Code supplies it.
+Pass `model_role="implementation"` for writable work and `model_role="recon"`
+for reconnaissance. Only override `model` at the user’s request.
+Resumes keep their resolved model.
+Pass the trusted active workspace's absolute `project_path` on every Sail
+lifecycle call, including from a git worktree.
 
 Omit `max_turns`; the 128-turn ceiling is a backstop, not a budget to tune.
 At the 24-turn boundary, writable overflow requires actual edits and an
