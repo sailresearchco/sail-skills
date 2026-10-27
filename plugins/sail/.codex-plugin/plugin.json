@@ -1,7 +1,7 @@
 {
   "name": "sail",
-  "version": "0.12.8",
-  "description": "Migrate inference and sandbox execution, allocate preemptible GPU compute, and delegate coding work to Sail from your preferred coding agent.",
+  "version": "0.17.1",
+  "description": "Migrate inference and sandbox execution and delegate coding work to Sail from your preferred coding agent.",
   "author": {
     "name": "Sail Research",
     "url": "https://sailresearch.com"
@@ -16,15 +16,14 @@
     "codex",
     "sailbox",
     "inference",
-    "migration",
-    "gpu"
+    "migration"
   ],
   "skills": "./skills/",
   "mcpServers": "./.mcp.json",
   "interface": {
     "displayName": "Sail",
     "shortDescription": "Delegate coding work and build agents on Sail",
-    "longDescription": "Migrate inference and sandbox execution, allocate preemptible GPU compute, and delegate coding work to Sail from your preferred coding agent.",
+    "longDescription": "Migrate inference and sandbox execution and delegate coding work to Sail from your preferred coding agent.",
     "developerName": "Sail Research",
     "category": "Developer Tools",
     "capabilities": [

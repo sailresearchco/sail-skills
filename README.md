@@ -3,8 +3,7 @@
 Use Sail models from the coding agent you already work in. The Sail plugin can
 delegate scoped coding work, run a coordinated multi-worker campaign, or
 request a read-only review. Your coding agent keeps ownership of the task in
-every case. It also includes skills for migrating applications to Sail and
-using preemptible GPU compute.
+every case. It also includes a skill for migrating applications to Sail.
 
 The plugin uses standard `SKILL.md` folders and one `sail-delegate` MCP server.
 The same skill payload and server launch command ship for Claude Code and local
@@ -40,7 +39,6 @@ Installation, usage, and troubleshooting are covered in
 | `sail-pick-models` | Choose the persistent default and role overrides used by new Sail delegations. |
 | `sail-update` | Update the installed Sail plugin from the current coding agent and verify its version. |
 | `sail-migrate` | Migrate an application's inference or third-party sandbox execution to Sail while preserving behavior. |
-| `sail-gpu-marketplace` | Allocate, connect to, and release a preemptible GPU VM, or recover checkpointed work after an interruption. |
 
 The line to remember: several jobs is Subs; one sweeping job that needs
 scouting first is Swarm.
@@ -66,7 +64,7 @@ codex plugin marketplace add sailresearchco/sail-skills
 codex plugin add sail@sail
 ```
 
-The Codex package includes all seven skills and the `sail-delegate` MCP server.
+The Codex package includes all six skills and the `sail-delegate` MCP server.
 The server works in local Codex app, CLI, and IDE sessions. Hosted Codex
 sessions cannot run the bundled local stdio server. Codex automatically
 approves delegation, fanout, waiting, collection, resume, and reading model
