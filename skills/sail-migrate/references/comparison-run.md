@@ -22,8 +22,8 @@ files, or a duplicated source tree for comparison.
 4. Compare the runs in the migration report:
    - Judge functional equivalence by substance and output shape, not exact
      text. Model outputs can differ even when no migration occurred.
-   - Qualify latency against the chosen completion window. A lower-cost window
-     intentionally trades turnaround time for price.
+   - Qualify latency against the chosen service tier. A lower-cost tier
+     intentionally trades latency for lower token prices.
    - Report tokens and approximate cost using each side's current published
      per-million-token prices.
 

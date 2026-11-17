@@ -1,6 +1,6 @@
 ---
 name: sail-migrate
-description: "Use to migrate or switch an existing app, agent, or background workflow to Sail by moving OpenAI Responses or Chat Completions, Anthropic Messages, raw HTTP, or framework configuration to the Sail API, and by moving sandbox execution from E2B, Modal, Daytona, Docker, or another third-party sandbox to Sailboxes, since a Sailbox is Sail's sandbox. Covers call-site inventory, model and completion-window selection, in-place edits that preserve existing behavior, an optional before/after comparison run, and moving a compatible agent harness into a Sailbox. Trigger on migrate/switch/port/move to Sail, replacing an OpenAI-compatible or Anthropic inference endpoint with Sail, or moving sandbox execution or an agent harness to Sail."
+description: "Use to migrate or switch an existing app, agent, or background workflow to Sail by moving OpenAI Responses or Chat Completions, Anthropic Messages, raw HTTP, or framework configuration to the Sail API, and by moving sandbox execution from E2B, Modal, Daytona, Docker, or another third-party sandbox to Sailboxes, since a Sailbox is Sail's sandbox. Covers call-site inventory, model and service-tier selection, in-place edits that preserve existing behavior, an optional before/after comparison run, and moving a compatible agent harness into a Sailbox. Trigger on migrate/switch/port/move to Sail, replacing an OpenAI-compatible or Anthropic inference endpoint with Sail, or moving sandbox execution or an agent harness to Sail."
 ---
 
 # Migrate to Sail
@@ -23,11 +23,11 @@ the baseline migration on it.
 
 ## Ground rules
 
-- Treat live docs as the source of truth for models, pricing, completion
-  windows, and API support. Consult these pages while working:
+- Treat live docs as the source of truth for models, pricing, service
+  tiers, and API support. Consult these pages while working:
   - <https://docs.sailresearch.com/models>
   - <https://docs.sailresearch.com/pricing>
-  - <https://docs.sailresearch.com/completion-windows>
+  - <https://docs.sailresearch.com/service-tiers>
   - <https://docs.sailresearch.com/support>
   - <https://docs.sailresearch.com/sailbox-sdk>
   - Full docs: <https://docs.sailresearch.com/llms-full.txt>
@@ -95,35 +95,46 @@ tags, context window, and what each model is known to do well. Research an
 unfamiliar current model before choosing. If several Sail models are
 plausible, ask the user. Otherwise choose the best fit and explain why.
 
-## Step 4: Choose a completion window per call site
+## Step 4: Choose a service tier per call site
 
-Completion windows are a per-call-site decision and the main Sail-specific
+Service tiers are a per-call-site decision and the main Sail-specific
 cost tradeoff. Read the live
-[completion-window](https://docs.sailresearch.com/completion-windows) and
+[service-tier](https://docs.sailresearch.com/service-tiers) and
 [pricing](https://docs.sailresearch.com/pricing) pages for current token prices,
-scheduling behavior, and per-model availability. Sail's `asap` prices are lower
-than traditional inference providers' prices for many models, while workloads
-that can wait save more with `balanced` or `flex`. If the pages are unavailable,
-use these stable semantics:
+queueing behavior, target TPS, and per-model availability. Sail's `asap` prices
+are lower than traditional inference providers' prices for many models, while
+workloads that can wait save more with `balanced` or `flex`. If the pages are
+unavailable, use these stable semantics:
 
-- `asap`: low-latency serving that is cheaper than traditional inference
-  providers
-- `balanced`: more tokens per dollar for background or autonomous agents and
-  pipelines
-- `flex`: the lowest prices for batch jobs, evaluations, or offline processing;
-  it has no latency target; send it with `background=True` on the Responses API
-  or through the Batch API
+- `asap`: no queueing delay; targets 50-100 TPS; foreground-only, not
+  compatible with `background=True` or the Batch API. For chat interfaces and
+  realtime interactivity.
+- `balanced`: queueing of up to 5 minutes for the first turn in a run, then
+  seconds for follow-up turns of an in-flight run; targets 30-50 TPS;
+  streaming, foreground, and background-compatible. For subagents, frequent
+  automations and routines, RL rollouts, evals, and coding agents.
+- `flex`: the lowest prices; queueing of up to 1 hour for the first turn in a
+  run (guaranteed), then seconds for follow-up turns of an in-flight run;
+  targets 10-20 TPS; the most generous capacity and highest rate limits;
+  background-only: send it with `background=True` on the Responses API or
+  through the Batch API. For proactive long-horizon agents, background agents
+  and tasks, rollouts, automations and routines, large-scale evals, high
+  parallelism work, and offline processing.
 
-Leave `metadata.completion_window` unset for the default low-latency behavior:
-Sail picks the fastest published window compatible with the model and request.
+Sail uses longest-prefix matching to recognize follow-up turns of an in-flight
+run; they are prioritized and see minimal queueing. Experienced TPS varies by
+model and workload.
+
+Leave `service_tier` unset for the default low-latency behavior: Sail picks
+the fastest published tier compatible with the model and request.
 Synchronous and non-background requests never fall back to `flex`; background
-requests may. LoRA requests skip `asap`. If no compatible window exists, Sail
-rejects the request before task creation. Set `completion_window` explicitly
-for latency-tolerant work, normally `balanced` or `flex`. Pin `asap` only when
-the request must fail instead of using a fallback window. An explicit window the
+requests may. LoRA requests are Flex-only. If no compatible tier exists, Sail
+rejects the request before task creation. Set `service_tier` explicitly for
+latency-tolerant work, normally `balanced` or `flex`. Pin `asap` only when
+the request must fail instead of using a fallback tier. An explicit tier the
 model does not support is an error: explicit values never fall back. Confirm
-the selected window is available for the chosen model. Some models are
-flex-only. Ask if the workload's latency tolerance is unclear.
+the selected tier is available for the chosen model. Some models are
+Flex-only. Ask if the workload's latency tolerance is unclear.
 
 ## Step 5: Migrate inference in place
 
@@ -139,13 +150,9 @@ client = OpenAI(
     api_key=os.environ["SAIL_API_KEY"],
 )
 
-existing_metadata = {}  # reuse the metadata this call site already sends
-# Leave completion_window unset for the default low-latency behavior.
-# Set it to opt into a longer window or pin an exact window.
-
 response = client.responses.create(
     model="<model chosen in step 3>",
-    metadata={**existing_metadata},  # completion_window omitted by default
+    # service_tier is omitted for the default low-latency behavior.
     input=...,  # unchanged
 )
 ```
@@ -161,18 +168,22 @@ response = client.responses.create(
   `ANTHROPIC_AUTH_TOKEN` sends bearer authorization. Set only one credential
   style. If both headers are present, bearer authorization takes precedence.
   For framework or environment-only configuration, also set
-  `ANTHROPIC_BASE_URL=https://api.sailresearch.com`. The Python and TypeScript
-  SDKs' `metadata` types do not include Sail's `completion_window` extension;
-  cast only the `metadata` field, with a comment, and note the cast in the
-  report.
+  `ANTHROPIC_BASE_URL=https://api.sailresearch.com`.
 - Read `SAIL_API_KEY` from the environment.
-- Set the model selected in step 3. Leave `metadata.completion_window` unset
-  for the default low-latency behavior. Set it to opt into a longer window or
-  pin an exact window.
-  Preserve every metadata entry the call site already sends; when you add
-  `completion_window`, add it to that object instead of replacing it.
+- Set the model selected in step 3. Leave `service_tier` unset for the default
+  low-latency behavior. Set it to `balanced` or `flex` to opt into those tiers,
+  or to `asap` to pin an exact tier.
+- Sail accepts only `asap`, `balanced`, and `flex` for `service_tier`. Replace
+  or remove any other value the call site already sends.
+- The OpenAI and Anthropic SDKs type `service_tier` with their own values.
+  They send Sail's values as written, but type checkers can reject them. When
+  the project's type checker rejects the value, silence only that line: put
+  `// @ts-expect-error` on the line above `service_tier` in TypeScript, or end
+  the `service_tier` line with `# type: ignore` in Python. Note it in the
+  report.
 - Use `background=True` for `flex` and very long-running Responses requests.
-  Poll the returned response ID. Background requests cannot stream.
+  Poll the returned response ID. Background requests cannot stream. ASAP does
+  not support `background=True`; use Balanced or Flex for background requests.
 - Keep the request shape already in use. Do not rewrite Chat Completions to
   Responses, or Responses to Chat Completions, as part of the migration.
 - Update environment-variable names, `.env.example`, configuration templates,
@@ -180,7 +191,7 @@ response = client.responses.create(
 - Do not change prompts, tools, or business logic.
 
 For example, preserve an existing Messages request while changing only its
-client configuration and model, and opting into a completion window when the
+client configuration and model, and opting into a service tier when the
 workload can wait:
 
 ```python
@@ -195,7 +206,7 @@ client = Anthropic(
 
 message = client.messages.create(
     model="<model chosen in step 3>",
-    # completion_window is omitted for the default low-latency behavior.
+    service_tier="balanced",  # this workload can wait; omit for low latency
     max_tokens=...,
     messages=...,  # unchanged
 )
@@ -304,13 +315,13 @@ Finish with a short report containing:
 
 - call sites changed, grouped by inference and sandbox legs
 - model mapping and rationale
-- completion window per call site: which were left unset for the default
+- service tier per call site: which were left unset for the default
   low-latency behavior, which were set (normally `balanced` or `flex`), and
   rationale
 - a simple, approximate comparison of published per-million-token prices for
   the old and new models; do not present it as a bill forecast
 - before/after outputs, latency, tokens, and cost if the comparison ran;
-  explicitly qualify normal model nondeterminism and completion-window latency
+  explicitly qualify normal model nondeterminism and service-tier latency
 - whether the harness-in-Sailbox end-state was offered, adopted, or unsuitable
 - unsupported features, ambiguous choices, and untested paths
 - exactly where to set `SAIL_API_KEY` locally and in the deployment system
@@ -319,7 +330,7 @@ Finish with a short report containing:
 
 - Do not change prompts, tools, or business logic while migrating.
 - Do not hardcode, print, or request pasted API keys.
-- Do not silently substitute a model or completion window when unsure.
+- Do not silently substitute a model or service tier when unsure.
 - Do not put secrets in shell strings, images, or committed files.
 - Do not stash, reset, or overwrite unrelated user changes.
 - Do not create a duplicated source tree for comparison. The git history is
